@@ -417,3 +417,4 @@
 *Document généré: Janvier 2026*
 *Prochaine étape: Compilation document de recherche final*
 
+

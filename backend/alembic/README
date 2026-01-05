@@ -1,0 +1,34 @@
+# Alembic Migrations
+
+## Usage
+
+### Create a new migration
+```bash
+alembic revision --autogenerate -m "Description of changes"
+```
+
+### Apply migrations
+```bash
+alembic upgrade head
+```
+
+### Rollback migrations
+```bash
+alembic downgrade -1  # Rollback 1 step
+alembic downgrade base  # Rollback all
+```
+
+### View migration history
+```bash
+alembic history
+alembic current
+```
+
+## Important
+
+- Always review auto-generated migrations before applying
+- Test migrations on staging before production
+- Keep migrations reversible (implement downgrade)
+- Never modify applied migrations
+
+

@@ -308,3 +308,4 @@
 *Document généré: Janvier 2026*
 *Prochaine étape: Specs techniques MVP pour niche(s) validée(s)*
 
+

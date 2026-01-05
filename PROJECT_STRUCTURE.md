@@ -330,3 +330,4 @@ Template variables d'environnement:
 **Structure créée: Janvier 2026**
 **Prochaine mise à jour: Après Semaine 2**
 
+

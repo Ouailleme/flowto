@@ -1,19 +1,49 @@
-"""Application configuration - International-ready"""
+"""Application configuration - Simplified for MVP"""
 from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Optional
+from enum import Enum
+
+
+# Internationalization Enums
+class LanguageEnum(str, Enum):
+    FRENCH = "fr"
+    ENGLISH = "en"
+    SPANISH = "es"
+    GERMAN = "de"
+    ITALIAN = "it"
+    DUTCH = "nl"
+
+
+class CountryEnum(str, Enum):
+    FRANCE = "FR"
+    BELGIUM = "BE"
+    SWITZERLAND = "CH"
+    LUXEMBOURG = "LU"
+    SPAIN = "ES"
+    GERMANY = "DE"
+    ITALY = "IT"
+    NETHERLANDS = "NL"
+    UNITED_KINGDOM = "GB"
+    USA = "US"
+    CANADA = "CA"
+
+
+class CurrencyEnum(str, Enum):
+    EUR = "EUR"
+    USD = "USD"
+    GBP = "GBP"
+    CHF = "CHF"
+    CAD = "CAD"
 
 
 class Settings(BaseSettings):
-    """
-    Application settings with international support
-    
-    All settings can be overridden via environment variables
-    """
+    """Application settings"""
     
     # Application
     APP_NAME: str = "FinanceAI"
     APP_ENV: str = "development"
     DEBUG: bool = True
+    VERSION: str = "1.0.0"
     
     # Security
     SECRET_KEY: str
@@ -32,7 +62,7 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
     
-    # CORS (multiple origins for international domains)
+    # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
     
     @property
@@ -42,87 +72,37 @@ class Settings(BaseSettings):
     # Internationalization
     DEFAULT_LANGUAGE: str = "fr"
     SUPPORTED_LANGUAGES: str = "fr,en,es,de,it,nl"
+    DEFAULT_CURRENCY: str = "EUR"
+    SUPPORTED_CURRENCIES: str = "EUR,USD,GBP,CHF,CAD"
+    DEFAULT_COUNTRY: str = "FR"
+    SUPPORTED_COUNTRIES: str = "FR,BE,CH,LU,ES,DE,IT,NL,GB,US,CA"
+    DEFAULT_TIMEZONE: str = "Europe/Paris"
     
     @property
     def supported_languages_list(self) -> List[str]:
         return [lang.strip() for lang in self.SUPPORTED_LANGUAGES.split(",")]
     
-    DEFAULT_CURRENCY: str = "EUR"
-    SUPPORTED_CURRENCIES: str = "EUR,USD,GBP,CHF,CAD"
-    
     @property
     def supported_currencies_list(self) -> List[str]:
         return [curr.strip() for curr in self.SUPPORTED_CURRENCIES.split(",")]
-    
-    DEFAULT_TIMEZONE: str = "Europe/Paris"
-    
-    # Supported countries (for banking integrations and legal)
-    SUPPORTED_COUNTRIES: str = "FR,BE,CH,LU,ES,DE,IT,NL,GB,US,CA"
     
     @property
     def supported_countries_list(self) -> List[str]:
         return [country.strip() for country in self.SUPPORTED_COUNTRIES.split(",")]
     
-    # Bridge API (Banking) - Works in 11+ European countries
-    BRIDGE_ENV: str = "sandbox"  # sandbox or production
-    BRIDGE_CLIENT_ID: str
-    BRIDGE_CLIENT_SECRET: str
-    BRIDGE_API_KEY: str
-    BRIDGE_API_URL: str = "https://api.bridgeapi.io/v2"
+    # API Settings
+    API_V1_STR: str = "/api/v1"
     
-    # Bridge supported countries
-    # FR, BE, ES, DE, IT, PT, NL, AT, IE, PL, LU
-    BRIDGE_SUPPORTED_COUNTRIES: List[str] = [
-        "FR", "BE", "ES", "DE", "IT", "PT", "NL", "AT", "IE", "PL", "LU"
-    ]
-    
-    # Future: Add other banking providers
-    # PLAID_CLIENT_ID: str = ""  # For US/CA
-    # TRUELAYER_CLIENT_ID: str = ""  # For UK
-    
-    # Anthropic Claude (AI)
-    ANTHROPIC_API_KEY: str
-    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
-    
-    # OpenAI (optional fallback)
-    OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4o-mini"
-    
-    # SendGrid (Email) - International support
-    SENDGRID_API_KEY: str
-    SENDGRID_FROM_EMAIL: str = "noreply@financeai.fr"
-    SENDGRID_FROM_NAME: str = "FinanceAI"
-    
-    # Stripe (Payments) - Global support
-    STRIPE_PUBLIC_KEY: str
-    STRIPE_SECRET_KEY: str
-    STRIPE_WEBHOOK_SECRET: str
-    
-    # Stripe supports 135+ currencies
-    # Automatic currency detection based on user's country
-    
-    # Currency Exchange Rates API (for multi-currency conversion)
-    EXCHANGE_RATE_API_KEY: str = ""
-    EXCHANGE_RATE_API_URL: str = "https://api.exchangerate-api.com/v4/latest/"
-    
-    # Sentry (Error Tracking)
-    SENTRY_DSN: str = ""
-    
-    # Logging
-    LOG_LEVEL: str = "INFO"
-    LOG_FORMAT: str = "json"  # json or text
-    
-    # Feature Flags (easy to enable/disable features per market)
-    FEATURE_BANK_SYNC: bool = True
-    FEATURE_AI_CATEGORIZATION: bool = True
-    FEATURE_AUTO_RECONCILIATION: bool = True
-    FEATURE_PAYMENT_REMINDERS: bool = True
-    FEATURE_CASH_FLOW_FORECAST: bool = False  # Coming soon
-    
-    # Market-specific features
-    FEATURE_FR_ACCOUNTING_EXPORT: bool = True  # French accounting standards
-    FEATURE_CH_VAT_RATES: bool = False  # Swiss VAT rates (enable when needed)
-    FEATURE_US_TAX_FORMS: bool = False  # US tax forms (future)
+    # External APIs (Optional for MVP)
+    BRIDGE_API_KEY: Optional[str] = None
+    BRIDGE_CLIENT_ID: Optional[str] = None
+    BRIDGE_CLIENT_SECRET: Optional[str] = None
+    CLAUDE_API_KEY: Optional[str] = None
+    SENDGRID_API_KEY: Optional[str] = None
+    EXCHANGE_RATE_API_KEY: Optional[str] = None
+    STRIPE_PUBLIC_KEY: Optional[str] = None
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
     
     class Config:
         env_file = ".env"
@@ -130,4 +110,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

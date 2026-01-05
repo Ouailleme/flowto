@@ -18,3 +18,4 @@ EXPOSE 3000
 # Run application
 CMD ["npm", "run", "dev"]
 
+

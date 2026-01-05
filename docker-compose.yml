@@ -4,18 +4,20 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: financeai_postgres
+    container_name: flowto_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: financeai
+      POSTGRES_USER: flowto
+      POSTGRES_PASSWORD: flowto2026
+      POSTGRES_DB: flowto
+      POSTGRES_HOST_AUTH_METHOD: md5  # Force password auth
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database_schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      # Schema will be created by SQLAlchemy in setup_complete.py
+      # - ./database_schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U financeai -d financeai"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,9 +25,9 @@ services:
   # Redis (Cache + Celery broker)
   redis:
     image: redis:7-alpine
-    container_name: financeai_redis
+    container_name: flowto_redis
     ports:
-      - "6379:6379"
+      - "6380:6379"  # Changed to 6380 to avoid conflict
     volumes:
       - redis_data:/data
     healthcheck:
@@ -39,14 +41,14 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: financeai_backend
+    container_name: flowto_backend
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/financeai
+      - DATABASE_URL=postgresql+asyncpg://flowto:flowto2026@postgres:5432/flowto
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
@@ -105,7 +107,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: financeai_frontend
+    container_name: flowto_frontend
     depends_on:
       - backend
     environment:

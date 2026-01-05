@@ -249,3 +249,4 @@
 *Sources: Recherche marché, forums entrepreneurs, études sectorielles*
 *Prochaine étape: Mapping concurrence pour identifier gaps*
 
+

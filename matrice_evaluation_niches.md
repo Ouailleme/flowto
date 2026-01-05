@@ -507,3 +507,4 @@
 *Document généré: Janvier 2026*
 *Prochaine étape: Validation top 3 niches (landing pages + interviews)*
 
+

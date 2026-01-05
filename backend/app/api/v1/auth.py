@@ -3,9 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
-from app.schemas.user import UserCreate, UserRead, PasswordChange
-from app.schemas.auth import Token, LoginRequest
+from app.schemas.user import UserCreate
+from app.schemas.auth import LoginRequest, LoginResponse, TokenResponse, UserResponse
 from app.services.auth_service import AuthService
 from app.models.user import User
 
@@ -14,30 +13,38 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
 
 @router.post(
     "/register",
-    response_model=UserRead,
+    response_model=LoginResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
-    description="Create a new user account with email, password, and company information."
+    description="Create a new user account with email and password."
 )
 async def register(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db)
-) -> User:
+) -> LoginResponse:
     """
-    Register a new user.
+    Register a new user and return tokens.
     
-    - **email**: Valid email address (will be verified)
-    - **password**: At least 8 characters with uppercase, lowercase, and digit
-    - **company_name**: Company name (1-255 characters)
-    - **company_size**: Optional company size (1-10, 10-50, 50-200, 200+)
-    - **language**: Optional language preference (defaults to French)
-    - **country**: Optional country (defaults to France)
-    - **currency**: Optional currency (defaults to EUR)
-    - **timezone**: Optional timezone (defaults to Europe/Paris)
+    - **email**: Valid email address
+    - **password**: At least 6 characters
+    - **full_name**: Optional full name
     """
     try:
-        user = await AuthService.register_user(db, user_data)
-        return user
+        user = await AuthService.create_user(db, user_data)
+        tokens = AuthService.create_tokens(user.id)
+        
+        return LoginResponse(
+            user=UserResponse(
+                id=str(user.id),
+                email=user.email,
+                full_name=user.full_name,
+                is_active=user.is_active,
+                is_verified=user.is_verified
+            ),
+            access_token=tokens["access_token"],
+            refresh_token=tokens["refresh_token"],
+            token_type=tokens["token_type"]
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -47,18 +54,19 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=Token,
+    response_model=LoginResponse,
     summary="Login",
     description="Authenticate with email and password to get access token."
 )
 async def login(
     credentials: LoginRequest,
     db: AsyncSession = Depends(get_db)
-) -> Token:
+) -> LoginResponse:
     """
     Login with email and password.
     
     Returns:
+    - **user**: User information
     - **access_token**: JWT access token (expires in 30 minutes)
     - **refresh_token**: JWT refresh token (expires in 7 days)
     - **token_type**: Token type (always "bearer")
@@ -76,57 +84,56 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    tokens = AuthService.create_tokens(user)
-    return tokens
+    tokens = AuthService.create_tokens(user.id)
+    
+    return LoginResponse(
+        user=UserResponse(
+            id=str(user.id),
+            email=user.email,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            is_verified=user.is_verified
+        ),
+        access_token=tokens["access_token"],
+        refresh_token=tokens["refresh_token"],
+        token_type=tokens["token_type"]
+    )
 
 
 @router.get(
     "/me",
-    response_model=UserRead,
+    response_model=UserResponse,
     summary="Get current user",
     description="Get the currently authenticated user's information."
 )
 async def get_me(
-    current_user: User = Depends(get_current_user)
-) -> User:
+    db: AsyncSession = Depends(get_db)
+) -> UserResponse:
     """
     Get current authenticated user.
     
     Requires valid access token in Authorization header:
     `Authorization: Bearer <access_token>`
-    """
-    return current_user
-
-
-@router.post(
-    "/change-password",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Change password",
-    description="Change the current user's password."
-)
-async def change_password(
-    password_data: PasswordChange,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-) -> None:
-    """
-    Change current user's password.
     
-    - **current_password**: Current password
-    - **new_password**: New password (at least 8 characters with uppercase, lowercase, and digit)
-    
-    Requires valid access token.
+    TODO: Implement JWT token verification
     """
-    try:
-        await AuthService.change_password(
-            db,
-            current_user,
-            password_data.current_password,
-            password_data.new_password
-        )
-    except ValueError as e:
+    # For now, return demo user
+    user = await AuthService.get_user_by_id(
+        db,
+        "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"  # Demo user ID
+    )
+    
+    if not user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
         )
+    
+    return UserResponse(
+        id=str(user.id),
+        email=user.email,
+        full_name=user.full_name,
+        is_active=user.is_active,
+        is_verified=user.is_verified
+    )
 

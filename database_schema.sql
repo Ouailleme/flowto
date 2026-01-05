@@ -434,3 +434,4 @@ BEGIN
     RAISE NOTICE '3. Create first user via Supabase Auth';
 END $$;
 
+

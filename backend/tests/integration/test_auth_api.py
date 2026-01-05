@@ -185,3 +185,4 @@ async def test_complete_auth_flow(client: AsyncClient, test_user_data):
     user_data = me_response.json()
     assert user_data["email"] == test_user_data["email"]
 
+

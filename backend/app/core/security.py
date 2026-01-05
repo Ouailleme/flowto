@@ -1,152 +1,76 @@
-"""Security utilities: JWT, password hashing, tokens"""
+"""Security utilities: password hashing, JWT tokens"""
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
-from jose import JWTError, jwt
+from typing import Optional
 from passlib.context import CryptContext
+from jose import JWTError, jwt
 from app.config import settings
 
-# Password hashing context (bcrypt with cost factor 12)
+# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+# JWT settings
+ALGORITHM = "HS256"
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a plain password against a hashed password.
-    
-    Args:
-        plain_password: Plain text password
-        hashed_password: Hashed password from database
-        
-    Returns:
-        True if password matches, False otherwise
-    """
-    return pwd_context.verify(plain_password, hashed_password)
+
+def hash_password(password: str) -> str:
+    """Hash a password (truncate to 72 characters for bcrypt compatibility)"""
+    # Bcrypt has a 72-byte limit. To be safe, truncate to 72 characters
+    # (which is at most 72 bytes for ASCII, and likely within limits for UTF-8)
+    truncated_password = password[:72]
+    return pwd_context.hash(truncated_password)
 
 
 def get_password_hash(password: str) -> str:
-    """
-    Hash a password for storing in database.
-    
-    Args:
-        password: Plain text password
-        
-    Returns:
-        Hashed password
-    """
-    return pwd_context.hash(password)
+    """Alias for hash_password (for consistency)"""
+    return hash_password(password)
 
 
-def create_access_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None
-) -> str:
-    """
-    Create a JWT access token.
-    
-    Args:
-        data: Data to encode in token (usually {"sub": user_id})
-        expires_delta: Token expiration time (default: from settings)
-        
-    Returns:
-        Encoded JWT token
-    """
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against a hash (truncate to 72 characters for bcrypt compatibility)"""
+    # Bcrypt has a 72-byte limit. To be safe, truncate to 72 characters
+    # (which is at most 72 bytes for ASCII, and likely within limits for UTF-8)
+    truncated_password = plain_password[:72]
+    return pwd_context.verify(truncated_password, hashed_password)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create JWT access token"""
     to_encode = data.copy()
-    
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    to_encode.update({
-        "exp": expire,
-        "iat": datetime.utcnow(),
-        "type": "access"
-    })
+    # Only set type to "access" if not already specified
+    to_encode.update({"exp": expire})
+    if "type" not in to_encode:
+        to_encode["type"] = "access"
     
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.JWT_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM
-    )
-    
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def create_refresh_token(
-    data: Dict[str, Any],
-    expires_delta: Optional[timedelta] = None
-) -> str:
-    """
-    Create a JWT refresh token.
-    
-    Args:
-        data: Data to encode in token (usually {"sub": user_id})
-        expires_delta: Token expiration time (default: from settings)
-        
-    Returns:
-        Encoded JWT refresh token
-    """
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create JWT refresh token"""
     to_encode = data.copy()
-    
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
-            days=settings.REFRESH_TOKEN_EXPIRE_DAYS
-        )
+        expire = datetime.utcnow() + timedelta(days=7)  # 7 days for refresh token
     
-    to_encode.update({
-        "exp": expire,
-        "iat": datetime.utcnow(),
-        "type": "refresh"
-    })
-    
-    encoded_jwt = jwt.encode(
-        to_encode,
-        settings.JWT_SECRET_KEY,
-        algorithm=settings.JWT_ALGORITHM
-    )
-    
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
-    """
-    Decode and verify a JWT token.
-    
-    Args:
-        token: JWT token to decode
-        
-    Returns:
-        Decoded token payload or None if invalid
-    """
+def decode_access_token(token: str) -> Optional[dict]:
+    """Decode JWT token"""
     try:
-        payload = jwt.decode(
-            token,
-            settings.JWT_SECRET_KEY,
-            algorithms=[settings.JWT_ALGORITHM]
-        )
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError:
         return None
 
 
-def get_user_id_from_token(token: str) -> Optional[str]:
-    """
-    Extract user ID from JWT token.
-    
-    Args:
-        token: JWT token
-        
-    Returns:
-        User ID (UUID as string) or None if invalid
-    """
-    payload = decode_token(token)
-    if payload is None:
-        return None
-    
-    user_id: str = payload.get("sub")
-    return user_id
-
+# Alias for consistency with deps.py
+decode_token = decode_access_token

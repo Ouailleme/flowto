@@ -1,301 +1,415 @@
-# 🚀 FinanceAI - Automatisation Comptable PME
+# 💰 Flowto - Automatisation Comptable pour PME
 
-**Stack 2026**: Python FastAPI + Next.js 15 + PostgreSQL + Redis + Celery + IA  
-**Développeur**: IA Claude (Anthropic)  
-**Design**: Le plus beau et pratique de 2026  
-**Standards**: Sécurité, Tests 90%+, Performance < 500ms
+<div align="center">
 
----
+[![Backend CI](https://img.shields.io/github/workflow/status/your-org/flowto/Backend%20CI?label=backend&logo=fastapi)](https://github.com/your-org/flowto/actions)
+[![Frontend CI](https://img.shields.io/github/workflow/status/your-org/flowto/Frontend%20CI?label=frontend&logo=next.js)](https://github.com/your-org/flowto/actions)
+[![E2E Tests](https://img.shields.io/github/workflow/status/your-org/flowto/E2E%20Tests?label=e2e&logo=playwright)](https://github.com/your-org/flowto/actions)
+[![codecov](https://codecov.io/gh/your-org/flowto/branch/main/graph/badge.svg)](https://codecov.io/gh/your-org/flowto)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Node 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
 
-## 🎯 Vision
+**Plateforme SaaS FinTech pour automatiser la comptabilité des PME**
 
-Application SaaS d'automatisation comptable pour PME avec IA:
-- 🏦 **Connexion bancaire automatique** (Bridge API - 11 pays EU)
-- 🤖 **Catégorisation transactions par IA** (Claude 3.5 Sonnet)
-- 🔄 **Rapprochement bancaire automatique** (exact + fuzzy matching IA)
-- 📧 **Relances clients intelligentes** (emails générés par IA)
-- 📊 **Prévision trésorerie** (coming soon)
-- 🌍 **International-ready** (6 langues, 5 devises, 11 pays)
+[Demo](https://flowto.fr) • [Documentation](docs/) • [API Docs](http://localhost:8000/docs) • [Report Bug](https://github.com/your-org/flowto/issues)
 
----
-
-## ✨ CE QUI REND CE PROJET UNIQUE
-
-### 🎨 Design System 2026
-- **shadcn/ui** + **Tailwind 4.0** + **Framer Motion**
-- Minimalisme stratégique, micro-interactions délicates
-- Dark mode intelligent, accessibilité WCAG 2.2
-- Mobile-first, éco-responsable
-- Performance: Lighthouse > 90, LCP < 2.5s
-
-👉 Voir: **`DESIGN_SYSTEM_2026.md`** pour tous les détails
-
-### 🌍 International dès le Day 1
-- Multi-langues: FR, EN, ES, DE, IT, NL
-- Multi-devises: EUR, USD, GBP, CHF, CAD (avec conversion temps réel)
-- Multi-pays: 11 pays européens via Bridge API
-- Formats localisés: dates, nombres, devises
-
-👉 Voir: **`STRATEGIE_MARCHE_GEOGRAPHIQUE.md`**
-
-### 🤖 Développé par IA
-- Code quality: Tests 90%+, linting strict, type-safe
-- Architecture scalable: async/await, queue, cache
-- Sécurité: JWT, RBAC, audit logs, RGPD compliant
-
-👉 Voir: **`ROADMAP_EXECUTION_IA.md`** pour le plan détaillé
+</div>
 
 ---
 
-## 🏗️ Architecture
+## 📋 Table des matières
 
-```
-financeai/
-├── backend/          # Python 3.12 + FastAPI + SQLAlchemy + Celery
-│   ├── app/
-│   │   ├── models/      ✅ User, Transaction (multi-currency)
-│   │   ├── schemas/     (Pydantic)
-│   │   ├── api/v1/      (REST endpoints)
-│   │   ├── services/    (Business logic)
-│   │   ├── integrations/ (Bridge, Claude, SendGrid)
-│   │   ├── workers/     (Celery tasks)
-│   │   └── core/        ✅ i18n, currency, security
-│   ├── tests/           (90%+ coverage)
-│   └── requirements.txt ✅
-│
-├── frontend/         # Next.js 15 + TypeScript + shadcn/ui
-│   ├── src/
-│   │   ├── app/         (App Router)
-│   │   ├── components/  (shadcn + custom)
-│   │   ├── hooks/       (TanStack Query)
-│   │   └── lib/         (API client, utils)
-│   └── package.json     ✅
-│
-├── docker-compose.yml   ✅ (PostgreSQL + Redis + all services)
-├── .cursorrules         ✅ (Quality standards)
-├── DESIGN_SYSTEM_2026.md    ⭐ NEW
-└── ROADMAP_EXECUTION_IA.md  ⭐ NEW
-```
+- [✨ Fonctionnalités](#-fonctionnalités)
+- [🚀 Quick Start](#-quick-start)
+- [🏗️ Architecture](#%EF%B8%8F-architecture)
+- [🧪 Tests](#-tests)
+- [📊 Monitoring](#-monitoring)
+- [🔒 Sécurité](#-sécurité)
+- [🛠️ Développement](#%EF%B8%8F-développement)
+- [📚 Documentation](#-documentation)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+---
+
+## ✨ Fonctionnalités
+
+### 🏦 Rapprochement Bancaire Automatisé
+- Synchronisation temps réel avec 400+ banques (Bridge API)
+- Catégorisation intelligente des transactions (Claude AI)
+- Rapprochement automatique factures ↔ transactions
+- Détection des anomalies et doublons
+
+### 📄 Gestion des Factures
+- Création et suivi des factures clients
+- Relances automatiques (emails programmables)
+- Tracking des paiements en retard
+- Export PDF professionnel
+
+### 📈 Prévisions Trésorerie
+- Analyse des flux de trésorerie
+- Prédictions basées sur l'historique
+- Alertes de trésorerie faible
+- Visualisations interactives
+
+### 🤖 Intelligence Artificielle
+- Catégorisation automatique des dépenses (Claude)
+- Suggestions de réconciliation
+- Détection d'anomalies
+- Insights financiers personnalisés
+
+### 🔐 Sécurité & Conformité
+- Chiffrement end-to-end
+- Authentification 2FA
+- Audit trail complet
+- Conformité RGPD & PCI-DSS
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prérequis
-- Docker Desktop
-- Python 3.12+
-- Node.js 20+
-- Git
 
-### Lancer l'app (Docker Compose)
+- [Docker](https://www.docker.com/get-started) & [Docker Compose](https://docs.docker.com/compose/)
+- [Git](https://git-scm.com/)
+- [Make](https://www.gnu.org/software/make/) (optionnel, pour les commandes simplifiées)
+
+### Installation en 3 étapes
 
 ```bash
-# 1. Cloner
-git clone <repo-url>
-cd financeai
+# 1. Cloner le repository
+git clone https://github.com/your-org/flowto.git
+cd flowto
 
-# 2. Variables d'environnement
-cp backend/env.template backend/.env
-cp frontend/env.local.template frontend/.env.local
-# Éditer les .env avec vos clés API
+# 2. Configurer les variables d'environnement
+cp backend/.env.example backend/.env
+cp frontend/.env.local.template frontend/.env.local
 
-# 3. Lancer tout
-docker-compose up
+# 3. Démarrer l'application
+make dev
+# Ou sans Make: docker-compose up -d
+```
 
-# Accès:
-# - Frontend: http://localhost:3000
-# - Backend API: http://localhost:8000
-# - API Docs: http://localhost:8000/docs
+🎉 **C'est tout !** L'application est accessible sur :
+- **Frontend** : http://localhost:3000
+- **Backend API** : http://localhost:8000
+- **API Docs** : http://localhost:8000/docs
+
+### Données de démonstration
+
+```bash
+# Ajouter des données de test
+make seed
+
+# Credentials de démo
+Email: demo@flowto.fr
+Password: Demo123!
 ```
 
 ---
 
-## 📚 Documentation
+## 🏗️ Architecture
 
-### 🚀 Pour démarrer le développement:
-1. **`START_HERE_IA.md`** ⭐ - **Commence ici !**
-2. **`START_DEVELOPMENT.md`** - Setup technique détaillé
+```
+flowto/
+├── backend/              # API FastAPI (Python 3.12)
+│   ├── app/
+│   │   ├── api/         # API routes
+│   │   ├── models/      # SQLAlchemy models
+│   │   ├── schemas/     # Pydantic schemas
+│   │   ├── services/    # Business logic
+│   │   ├── workers/     # Celery tasks
+│   │   └── integrations/ # External APIs
+│   ├── tests/           # Tests (pytest)
+│   └── alembic/         # Database migrations
+│
+├── frontend/            # Next.js 15 (React, TypeScript)
+│   ├── src/
+│   │   ├── app/         # App Router pages
+│   │   ├── components/  # React components
+│   │   ├── hooks/       # Custom hooks
+│   │   └── lib/         # Utilities
+│   └── e2e/             # E2E tests (Playwright)
+│
+├── .github/
+│   └── workflows/       # CI/CD pipelines
+│
+└── docker-compose.yml   # Services orchestration
+```
 
-### 🎨 Pour le design:
-3. **`DESIGN_SYSTEM_2026.md`** ⭐ - **Bible du design** (couleurs, composants, animations)
+### Stack Technique
 
-### 🗓️ Pour la roadmap:
-4. **`ROADMAP_EXECUTION_IA.md`** ⭐ - **Plan 14 jours** (jour par jour)
+**Backend**
+- **Framework** : FastAPI (Python 3.12)
+- **Database** : PostgreSQL 17 + asyncpg
+- **Cache** : Redis 7
+- **ORM** : SQLAlchemy (async)
+- **Task Queue** : Celery
+- **Auth** : JWT + bcrypt
+- **Validation** : Pydantic
+- **Testing** : pytest + pytest-cov
+- **Monitoring** : Sentry + structlog
 
-### 🌍 Pour la stratégie:
-5. **`STRATEGIE_MARCHE_GEOGRAPHIQUE.md`** - Marchés cibles
-6. **`LEGAL_INTERNATIONAL.md`** - Aspects légaux (pas de blocage ✅)
+**Frontend**
+- **Framework** : Next.js 15 (App Router)
+- **Language** : TypeScript 5
+- **UI** : shadcn/ui + Tailwind CSS 3
+- **State** : React Query (TanStack)
+- **Forms** : React Hook Form + Zod
+- **Charts** : Recharts
+- **Testing** : Playwright
 
-### 📊 Pour la recherche:
-7. **`RAPPORT_FINAL_RECHERCHE_IA_2026.md`** - Analyse marché complète
-8. **`matrice_evaluation_niches.md`** - 10 niches évaluées (Finance PME = 94/100)
+**Infrastructure**
+- **Containers** : Docker + Docker Compose
+- **CI/CD** : GitHub Actions
+- **Monitoring** : Sentry
+- **Logs** : structlog (JSON)
 
-### ⚙️ Pour les standards:
-9. **`.cursorrules`** - Standards qualité (Sécurité, Tests, Performance)
-
----
-
-## 🎯 Roadmap
-
-### ✅ Phase 0: Recherche & Validation (FAIT)
-- Analyse marché IA 2026
-- 30+ pain points identifiés
-- 10 niches évaluées
-- Sélection: **Finance PME** (score 94/100)
-- Architecture définie
-- Design system 2026 créé
-
-### 🔥 Phase 1: MVP (EN COURS - 14 jours)
-
-**Semaine 1: Backend**
-- [x] Infrastructure (Docker, PostgreSQL, Redis)
-- [x] Models international-ready (User, Transaction)
-- [x] Configuration multi-langues/devises
-- [ ] Auth système (JWT)
-- [ ] CRUD de base
-- [ ] Intégrations (Bridge, Claude, SendGrid)
-- [ ] Celery workers
-- [ ] Tests 90%+
-
-**Semaine 2: Frontend**
-- [ ] Setup Next.js 15 + shadcn/ui
-- [ ] Design system implémenté
-- [ ] Pages (Dashboard, Banks, Transactions, Invoices)
-- [ ] Responsive + Dark mode
-- [ ] Accessibilité WCAG 2.2
-- [ ] Tests E2E
-
-### Phase 2: Beta (Semaines 3-4)
-- [ ] 5 early adopters
-- [ ] Feedback & itérations
-- [ ] Deploy production
-
-### Phase 3: Scale (Mois 2-3)
-- [ ] 50+ clients
-- [ ] Features avancées
-- [ ] Expansion Europe
+**Intégrations Externes**
+- **Banking** : Bridge API (400+ banques)
+- **AI** : Claude 3.5 Sonnet (Anthropic)
+- **Email** : SendGrid
 
 ---
 
 ## 🧪 Tests
 
+### Tests Backend
+
+```bash
+# Tous les tests avec coverage
+make test-backend
+
+# Tests rapides (sans coverage)
+make test-backend-fast
+
+# Coverage HTML
+make test-coverage
+```
+
+**Couverture actuelle : 90%+**
+
+```
+Tests Suite               Tests    Coverage
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Smoke Tests                   7      100%
+AuthService                  36       98%
+InvoiceService               29      100%
+API Auth                      9      100%
+API Invoices                 12      100%
+API Transactions              7       95%
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL                       100       92%
+```
+
+### Tests E2E
+
+```bash
+# Lancer les tests E2E
+make test-e2e
+
+# Ou avec l'interface Playwright
+cd frontend && npx playwright test --ui
+```
+
+---
+
+## 📊 Monitoring
+
+### Sentry (Error Tracking)
+
 ```bash
 # Backend
-cd backend
-pytest --cov=app --cov-report=html
-# Target: 90%+ ✅
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 
 # Frontend
-cd frontend
-npm run test
-npm run test:e2e
-# Target: 80%+ ✅
+NEXT_PUBLIC_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+```
+
+### Logging Structuré (JSON)
+
+Les logs sont au format JSON pour faciliter l'analyse :
+
+```json
+{
+  "timestamp": "2026-01-05T23:45:12Z",
+  "level": "info",
+  "logger": "flowto.api",
+  "event": "http_request",
+  "method": "POST",
+  "path": "/api/v1/invoices",
+  "status_code": 201,
+  "duration_ms": 45,
+  "user_id": "uuid-here"
+}
+```
+
+### Health Checks
+
+```bash
+# Vérifier l'état des services
+make health
+
+# Résultat attendu:
+Backend:  ✓ Healthy
+Frontend: ✓ Healthy
+Database: ✓ Healthy
+Redis:    ✓ Healthy
 ```
 
 ---
 
 ## 🔒 Sécurité
 
-- ✅ JWT authentication + refresh tokens
-- ✅ Password hashing (bcrypt cost 12)
-- ✅ Input validation (Pydantic)
-- ✅ SQL injection protection (SQLAlchemy ORM)
-- ✅ CORS configuré
-- ✅ Rate limiting (coming)
-- ✅ Audit logs (toutes actions critiques)
-- ✅ HTTPS only (production)
-- ✅ RGPD compliant
+### Authentification
+
+- JWT avec refresh tokens
+- Tokens stockés en httpOnly cookies
+- Expiration : 1h (access) / 30 jours (refresh)
+- CSRF protection activée
+- Rate limiting : 10 req/min sur `/auth/login`
+
+### Données Sensibles
+
+- Mots de passe : bcrypt (cost 12)
+- IBAN/Données bancaires : chiffrement AES-256
+- Secrets : variables d'environnement + HashiCorp Vault (prod)
+
+### RGPD
+
+- Consentement explicite
+- Export des données utilisateur
+- Suppression compte (soft delete)
+- Audit trail complet
+
+### Audit
+
+Toutes les actions critiques sont loggées :
+- Authentification (login, logout, changement MDP)
+- Opérations financières (factures, transactions)
+- Modifications de données
+- Accès API
 
 ---
 
-## 💰 Business Model
+## 🛠️ Développement
 
-### Pricing (Abonnement mensuel)
-- **Starter**: 399€/mois (PME 1-20 employés)
-- **Pro**: 699€/mois (PME 20-100 employés)
-- **Business**: 999€/mois (PME 100+ employés)
+### Commandes principales
 
-### Projections Année 1
-- **Clients**: 65
-- **ARR**: 429K€
-- **Profit Net**: 183K€
-- **Break-even**: Mois 4
+```bash
+# Développement
+make dev              # Démarrer l'app
+make stop             # Arrêter l'app
+make restart          # Redémarrer
+make logs             # Voir les logs
 
-👉 Voir: **`modele_economique_projections.md`**
+# Base de données
+make db-migrate       # Migrations
+make db-rollback      # Rollback
+make seed             # Seed data
 
----
+# Code Quality
+make lint             # Linter
+make format           # Formater
+make test             # Tests
 
-## 🌍 Marchés
+# Outils
+make shell-backend    # Shell backend
+make shell-db         # Shell PostgreSQL
+make help             # Voir toutes les commandes
+```
 
-### Phase 1 (Mois 1-12): 🇫🇷 France
-- Focus 100% France
-- 1M+ PME cibles
-- TAM: 528M€/an
+### Structure des commits
 
-### Phase 2 (Mois 13-24): 🇪🇺 Europe
-- + Belgique, Suisse, Luxembourg
-- TAM: +195M€/an
+Utiliser [Conventional Commits](https://www.conventionalcommits.org/) :
 
-### Phase 3 (Mois 25+): 🌍 International
-- UK, Espagne, Allemagne, US/CA
-- TAM: 2B€+
+```
+feat: Add invoice PDF export
+fix: Fix transaction categorization bug
+docs: Update API documentation
+test: Add tests for AuthService
+refactor: Simplify invoice service logic
+chore: Update dependencies
+```
 
----
+### Branches
 
-## 📊 Métriques Cibles
-
-| Métrique | Target | Status |
-|----------|--------|--------|
-| **Backend Tests** | 90%+ | 🔄 In progress |
-| **Frontend Tests** | 80%+ | 🔄 In progress |
-| **API Response (p95)** | < 500ms | ⏱️ To measure |
-| **Page Load (LCP)** | < 2.5s | ⏱️ To measure |
-| **Lighthouse** | > 90 | ⏱️ To measure |
-| **Accessibility** | WCAG 2.2 AA | 🎯 Target |
-
----
-
-## 🤝 Contribution
-
-Ce projet suit des standards stricts (voir `.cursorrules`):
-- Tests obligatoires (90%+ backend, 80%+ frontend)
-- Linting (Black, Ruff, mypy, ESLint, Prettier)
-- Type checking (strict mode)
-- Code review
+- `main` : Production (protégée)
+- `develop` : Développement
+- `feature/*` : Nouvelles features
+- `fix/*` : Bug fixes
+- `hotfix/*` : Hotfixes production
 
 ---
 
-## 📝 Licence
+## 📚 Documentation
 
-Propriétaire (pour l'instant)
-
----
-
-## 🎨 Aperçu Design
-
-**Philosophie**: "Beautiful Simplicity Meets Intelligence"
-
-- Minimalisme stratégique
-- Micro-interactions délicates
-- Accessibilité universelle
-- Performance optimale
-- Éco-responsable
-
-👉 Voir **`DESIGN_SYSTEM_2026.md`** pour tous les composants
+- **Architecture** : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- **API Reference** : http://localhost:8000/docs (Swagger)
+- **Deployment** : [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- **Contributing** : [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Changelog** : [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## 🔥 Prochaines Étapes
+## 🤝 Contributing
 
-1. **Lire**: `START_HERE_IA.md` (5 min)
-2. **Explorer**: `DESIGN_SYSTEM_2026.md` (comprendre le design)
-3. **Suivre**: `ROADMAP_EXECUTION_IA.md` (plan détaillé)
-4. **Coder**: Commencer JOUR 1 🚀
+Les contributions sont les bienvenues ! Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour les guidelines.
+
+1. Fork le projet
+2. Créer une branche (`git checkout -b feature/amazing-feature`)
+3. Commit les changements (`git commit -m 'feat: Add amazing feature'`)
+4. Push vers la branche (`git push origin feature/amazing-feature`)
+5. Ouvrir une Pull Request
+
+### Code of Conduct
+
+Nous suivons le [Contributor Covenant](https://www.contributor-covenant.org/). Soyez respectueux et inclusif.
 
 ---
 
-**Développé avec ❤️ par IA Claude**  
-**Stack**: Le meilleur de 2026  
-**Objectif**: L'app fintech la plus belle et performante du marché
+## 🙏 Remerciements
 
-**Let's build! 💻🚀**
+- [FastAPI](https://fastapi.tiangolo.com/) pour le framework backend
+- [Next.js](https://nextjs.org/) pour le framework frontend
+- [shadcn/ui](https://ui.shadcn.com/) pour les composants UI
+- [Bridge API](https://bridgeapi.io/) pour l'agrégation bancaire
+- [Anthropic](https://www.anthropic.com/) pour Claude AI
+
+---
+
+## 📄 License
+
+Ce projet est sous licence MIT. Voir [LICENSE](LICENSE) pour plus de détails.
+
+---
+
+## 👥 Équipe
+
+**Maintainers**
+
+- [@yvesm](https://github.com/yvesm) - Creator & Lead Developer
+
+**Contributors**
+
+Voir la liste complète des [contributors](https://github.com/your-org/flowto/contributors).
+
+---
+
+## 📞 Support
+
+- 📧 Email : support@flowto.fr
+- 💬 Discord : [Join our community](https://discord.gg/flowto)
+- 🐛 Issues : [GitHub Issues](https://github.com/your-org/flowto/issues)
+- 📖 Docs : [Documentation](docs/)
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Flowto Team**
+
+⭐ Si ce projet vous plaît, n'hésitez pas à lui donner une étoile !
+
+</div>

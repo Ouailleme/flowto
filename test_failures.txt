@@ -1,0 +1,72 @@
+﻿docker-compose : time="2026-01-05T23:24:48+01:00" level=warning msg="C:\\Users\\yvesm\\Documents\\Projet\\docker-compose.yml: the 
+attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+At line:1 char:1
++ docker-compose exec backend pytest tests/unit/services/test_invoice_s ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (time="2026-01-0...tial confusion":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-7.4.3, pluggy-1.6.0 -- /usr/local/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pytest.ini
+plugins: anyio-3.7.1, asyncio-0.21.1, cov-4.1.0, mock-3.12.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 3 items
+
+tests/unit/services/test_invoice_service.py::test_get_invoices_filter_by_date_range FAILED [ 33%]
+tests/unit/services/test_invoice_service.py::test_get_overdue_invoices_all_users FAILED [ 66%]
+tests/unit/services/test_invoice_service.py::test_get_overdue_invoices_ordered_by_date FAILED [100%]
+
+=================================== FAILURES ===================================
+/app/tests/unit/services/test_invoice_service.py:348: assert 0 == 1
+/app/tests/unit/services/test_invoice_service.py:631: assert 1 >= 2
+/app/tests/unit/services/test_invoice_service.py:695: assert 0 == 3
+=============================== warnings summary ===============================
+../usr/local/lib/python3.12/site-packages/pydantic/_internal/_config.py:268
+  /usr/local/lib/python3.12/site-packages/pydantic/_internal/_config.py:268: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.5/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+../usr/local/lib/python3.12/site-packages/passlib/utils/__init__.py:854
+  /usr/local/lib/python3.12/site-packages/passlib/utils/__init__.py:854: DeprecationWarning: 'crypt' is deprecated and slated for removal in Python 3.13
+    from crypt import crypt as _crypt
+
+app/main.py:57
+  /app/app/main.py:57: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../usr/local/lib/python3.12/site-packages/fastapi/applications.py:4547
+../usr/local/lib/python3.12/site-packages/fastapi/applications.py:4547
+  /usr/local/lib/python3.12/site-packages/fastapi/applications.py:4547: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)
+
+app/main.py:65
+  /app/app/main.py:65: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+tests/unit/services/test_invoice_service.py: 22 warnings
+  /usr/local/lib/python3.12/site-packages/sqlalchemy/sql/schema.py:3592: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/unit/services/test_invoice_service.py::test_get_invoices_filter_by_date_range
+FAILED tests/unit/services/test_invoice_service.py::test_get_overdue_invoices_all_users
+FAILED tests/unit/services/test_invoice_service.py::test_get_overdue_invoices_ordered_by_date
+======================== 3 failed, 28 warnings in 5.51s ========================

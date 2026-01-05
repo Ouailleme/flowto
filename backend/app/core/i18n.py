@@ -208,3 +208,4 @@ def t(key: str, language: str = "fr", **kwargs) -> str:
     
     return text
 
+

@@ -312,3 +312,4 @@ const translations = {
 
 **Besoin de modifier quelque chose dans l'architecture actuelle ?** Je peux adapter les modèles pour être multi-devises/langues dès maintenant (effort minimal).
 
+

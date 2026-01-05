@@ -130,3 +130,4 @@ class CurrencyConverter:
         }
         return names.get(currency, {}).get(language, currency)
 
+

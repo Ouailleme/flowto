@@ -1,15 +1,15 @@
-"""User model - International-ready from Day 1"""
-from sqlalchemy import Column, String, DateTime, Boolean, Enum
+"""Simplified User model for authentication - No relationships"""
+from sqlalchemy import Column, String, DateTime, Boolean
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
 from app.core.database import Base
 import uuid
 from datetime import datetime
 import enum
 
 
+# Enums needed for compatibility with other modules
 class LanguageEnum(str, enum.Enum):
-    """Supported languages - Easy to add more"""
+    """Supported languages"""
     FRENCH = "fr"
     ENGLISH = "en"
     SPANISH = "es"
@@ -19,7 +19,7 @@ class LanguageEnum(str, enum.Enum):
 
 
 class CurrencyEnum(str, enum.Enum):
-    """Supported currencies - Easy to add more"""
+    """Supported currencies"""
     EUR = "EUR"
     USD = "USD"
     GBP = "GBP"
@@ -28,7 +28,7 @@ class CurrencyEnum(str, enum.Enum):
 
 
 class CountryEnum(str, enum.Enum):
-    """Supported countries - Easy to add more"""
+    """Supported countries"""
     FRANCE = "FR"
     BELGIUM = "BE"
     SWITZERLAND = "CH"
@@ -43,96 +43,34 @@ class CountryEnum(str, enum.Enum):
 
 
 class User(Base):
-    """
-    User model - International-ready
-    
-    Supports:
-    - Multiple languages
-    - Multiple currencies
-    - Multiple countries
-    - Multiple timezones
-    """
+    """Simplified User model for MVP authentication"""
     __tablename__ = "users"
     
-    # Core fields
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, nullable=False, index=True)
     hashed_password = Column(String(255), nullable=False)
-    
-    # Company info
-    company_name = Column(String(255), nullable=False)
-    company_size = Column(String(50))  # "1-10", "10-50", "50-200", "200+"
-    
-    # International settings
-    language = Column(
-        Enum(LanguageEnum),
-        nullable=False,
-        default=LanguageEnum.FRENCH,
-        comment="User's preferred language for interface and emails"
-    )
-    country = Column(
-        Enum(CountryEnum),
-        nullable=False,
-        default=CountryEnum.FRANCE,
-        comment="User's country (for legal, tax, banking integrations)"
-    )
-    currency = Column(
-        Enum(CurrencyEnum),
-        nullable=False,
-        default=CurrencyEnum.EUR,
-        comment="User's preferred currency for display and billing"
-    )
-    timezone = Column(
-        String(50),
-        nullable=False,
-        default="Europe/Paris",
-        comment="User's timezone (e.g. 'Europe/Paris', 'America/New_York')"
-    )
-    
-    # Locale settings (for number/date formatting)
-    locale = Column(
-        String(10),
-        nullable=False,
-        default="fr_FR",
-        comment="Locale for formatting (e.g. 'fr_FR', 'en_US', 'de_DE')"
-    )
-    
-    # Subscription
-    subscription_plan = Column(
-        String(50),
-        default="trial",
-        comment="trial, starter, pro, business"
-    )
-    subscription_status = Column(
-        String(50),
-        default="active",
-        comment="active, cancelled, expired, past_due"
-    )
-    stripe_customer_id = Column(String(255), unique=True, nullable=True)
-    
-    # Account status
+    full_name = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-    is_onboarded = Column(Boolean, default=False, comment="Has completed onboarding flow")
-    
-    # Timestamps
-    created_at = Column(
-        DateTime(timezone=True),
-        default=datetime.utcnow,
-        nullable=False
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False
-    )
+    is_superuser = Column(Boolean, default=False)
+    language = Column(String(10), default="fr")
+    country = Column(String(10), default="FR")
+    currency = Column(String(10), default="EUR")
+    timezone = Column(String(50), default="Europe/Paris")
+    locale = Column(String(10), default="fr_FR")
+    company_name = Column(String(255), nullable=True)
+    company_size = Column(String(50), nullable=True)
+    industry = Column(String(100), nullable=True)
+    subscription_plan = Column(String(50), default="trial")
+    subscription_status = Column(String(50), default="active")
+    stripe_customer_id = Column(String(255), nullable=True)
+    is_onboarded = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
-    
-    # Relationships
-    bank_accounts = relationship("BankAccount", back_populates="user", cascade="all, delete-orphan")
-    invoices = relationship("Invoice", back_populates="user", cascade="all, delete-orphan")
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
     
     def __repr__(self):
-        return f"<User {self.email} ({self.country.value})>"
+        return f"<User {self.email}>"
 

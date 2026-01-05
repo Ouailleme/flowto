@@ -1,110 +1,68 @@
 """FastAPI main application"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-import logging
-
 from app.config import settings
-from app.core.database import init_db, close_db
-from app.api.v1 import auth
 
-# Configure logging
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Import routers
+from app.api.v1 import auth, banks, transactions, invoices, reconciliations, categorization, reminders
 
-logger = logging.getLogger(__name__)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan events"""
-    # Startup
-    logger.info(f"Starting {settings.APP_NAME}...")
-    await init_db()
-    logger.info("Database initialized")
-    yield
-    # Shutdown
-    logger.info("Shutting down...")
-    await close_db()
-    logger.info("Database connections closed")
-
-
-# Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
     version="1.0.0",
-    description="Automatisation comptable pour PME avec IA",
+    description="FinanceAI - Automatisation comptable PME avec IA",
     docs_url="/docs",
     redoc_url="/redoc",
-    openapi_url="/openapi.json",
-    lifespan=lifespan,
+    redirect_slashes=False,
 )
 
-# CORS middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
 
-# Health check
-@app.get("/", tags=["health"])
+@app.get("/")
 async def root():
-    """Root endpoint - health check"""
+    """Root endpoint"""
     return {
-        "app": settings.APP_NAME,
-        "status": "ok",
+        "message": "FinanceAI API",
         "version": "1.0.0",
-        "environment": settings.APP_ENV
+        "status": "running",
+        "docs": "/docs",
     }
 
 
-@app.get("/health", tags=["health"])
+@app.get("/health")
 async def health():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "app": settings.APP_NAME,
-        "environment": settings.APP_ENV
-    }
+    return {"status": "healthy"}
 
 
-# Include routers
-app.include_router(auth.router, prefix="/api/v1")
+# Include API routers
+API_V1_PREFIX = "/api/v1"
+
+app.include_router(auth.router, prefix=API_V1_PREFIX, tags=["Authentication"])
+app.include_router(banks.router, prefix=API_V1_PREFIX, tags=["Bank Accounts"])
+app.include_router(transactions.router, prefix=API_V1_PREFIX, tags=["Transactions"])
+app.include_router(invoices.router, prefix=API_V1_PREFIX, tags=["Invoices"])
+app.include_router(reconciliations.router, prefix=API_V1_PREFIX, tags=["Reconciliations"])
+app.include_router(categorization.router, prefix=API_V1_PREFIX, tags=["Categorization"])
+app.include_router(reminders.router, prefix=API_V1_PREFIX, tags=["Reminders"])
 
 
-# Error handlers
-@app.exception_handler(404)
-async def not_found_handler(request, exc):
-    """Custom 404 handler"""
-    return {
-        "detail": "Endpoint not found",
-        "status_code": 404
-    }
+@app.on_event("startup")
+async def startup_event():
+    """Run on application startup"""
+    print("🚀 FinanceAI API starting...")
+    print(f"📚 API Documentation: http://localhost:8000/docs")
+    print(f"🔧 Environment: {settings.APP_ENV}")
 
 
-@app.exception_handler(500)
-async def internal_error_handler(request, exc):
-    """Custom 500 handler"""
-    logger.error(f"Internal server error: {exc}")
-    return {
-        "detail": "Internal server error",
-        "status_code": 500
-    }
-
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
-    )
-
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Run on application shutdown"""
+    print("👋 FinanceAI API shutting down...")

@@ -172,3 +172,4 @@ async def test_change_password_wrong_current(db_session: AsyncSession, test_user
             "NewPassword123"
         )
 
+

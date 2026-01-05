@@ -640,3 +640,4 @@ Chaque jour:
 
 **NEXT**: Commencer JOUR 1 → `backend/app/core/database.py`
 
+

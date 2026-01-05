@@ -9,41 +9,27 @@ from app.models.user import LanguageEnum, CurrencyEnum, CountryEnum
 class UserCreate(BaseModel):
     """Schema for creating a new user"""
     email: EmailStr
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(..., min_length=6, max_length=100)
+    full_name: Optional[str] = Field(None, max_length=255)
     company_name: str = Field(..., min_length=1, max_length=255)
-    company_size: Optional[str] = Field(None, pattern="^(1-10|10-50|50-200|200\\+)$")
-    
-    # International settings (optional, defaults will be applied)
-    language: Optional[LanguageEnum] = None
-    country: Optional[CountryEnum] = None
-    currency: Optional[CurrencyEnum] = None
-    timezone: Optional[str] = None
-    
-    @field_validator("password")
-    @classmethod
-    def password_strength(cls, v: str) -> str:
-        """Validate password strength"""
-        if len(v) < 8:
-            raise ValueError("Password must be at least 8 characters")
-        if not any(c.isupper() for c in v):
-            raise ValueError("Password must contain at least one uppercase letter")
-        if not any(c.islower() for c in v):
-            raise ValueError("Password must contain at least one lowercase letter")
-        if not any(c.isdigit() for c in v):
-            raise ValueError("Password must contain at least one digit")
-        return v
+    company_size: Optional[str] = Field("1-10", max_length=50)
+    industry: Optional[str] = Field(None, max_length=100)
+    country: Optional[str] = Field("FR", max_length=10)
+    language: Optional[str] = Field("fr", max_length=10)
+    currency: Optional[str] = Field("EUR", max_length=10)
+    timezone: Optional[str] = Field("Europe/Paris", max_length=50)
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "email": "user@example.com",
-                "password": "SecurePass123",
+                "password": "SecurePassword123!",
+                "full_name": "John Doe",
                 "company_name": "My Company",
-                "company_size": "10-50",
-                "language": "fr",
+                "company_size": "1-10",
                 "country": "FR",
-                "currency": "EUR",
-                "timezone": "Europe/Paris"
+                "language": "fr",
+                "currency": "EUR"
             }
         }
     )
@@ -77,18 +63,9 @@ class UserRead(BaseModel):
     
     id: UUID
     email: str
-    company_name: str
-    company_size: Optional[str]
-    language: LanguageEnum
-    country: CountryEnum
-    currency: CurrencyEnum
-    timezone: str
-    locale: str
-    subscription_plan: str
-    subscription_status: str
+    full_name: Optional[str]
     is_active: bool
     is_verified: bool
-    is_onboarded: bool
     created_at: datetime
     updated_at: datetime
 

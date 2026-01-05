@@ -1,28 +1,30 @@
-"""Authentication service - Business logic"""
-from typing import Optional, Tuple
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+"""Authentication service for user login, registration, and token management."""
+from datetime import datetime, timedelta
+from typing import Optional
 from uuid import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 import logging
 
-from app.models.user import User, LanguageEnum, CurrencyEnum, CountryEnum
+from app.models.user import User
 from app.schemas.user import UserCreate
-from app.schemas.auth import Token
 from app.core.security import (
     verify_password,
-    get_password_hash,
+    hash_password,
     create_access_token,
     create_refresh_token,
+    decode_token
 )
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 class AuthService:
-    """Authentication service"""
-    
+    """Service for authentication operations."""
+
     @staticmethod
-    async def register_user(
+    async def register(
         db: AsyncSession,
         user_data: UserCreate
     ) -> User:
@@ -34,70 +36,52 @@ class AuthService:
             user_data: User registration data
             
         Returns:
-            Created user
+            Created user object
             
         Raises:
             ValueError: If email already exists
         """
-        # Check if email already exists
+        # Check if email already exists (case-insensitive)
         result = await db.execute(
-            select(User).where(User.email == user_data.email)
+            select(User).where(func.lower(User.email) == user_data.email.lower())
         )
         existing_user = result.scalar_one_or_none()
         
-        if existing_user is not None:
-            raise ValueError("Email already registered")
+        if existing_user:
+            raise ValueError("Email already exists")
         
-        # Set defaults for international settings
-        language = user_data.language or LanguageEnum.FRENCH
-        country = user_data.country or CountryEnum.FRANCE
-        currency = user_data.currency or CurrencyEnum.EUR
-        timezone = user_data.timezone or "Europe/Paris"
-        
-        # Derive locale from language
-        locale_map = {
-            LanguageEnum.FRENCH: "fr_FR",
-            LanguageEnum.ENGLISH: "en_US",
-            LanguageEnum.SPANISH: "es_ES",
-            LanguageEnum.GERMAN: "de_DE",
-            LanguageEnum.ITALIAN: "it_IT",
-            LanguageEnum.DUTCH: "nl_NL",
-        }
-        locale = locale_map.get(language, "fr_FR")
-        
-        # Create user
+        # Create new user with all fields
         user = User(
-            email=user_data.email,
-            hashed_password=get_password_hash(user_data.password),
+            email=user_data.email.lower(),
+            hashed_password=hash_password(user_data.password),
             company_name=user_data.company_name,
-            company_size=user_data.company_size,
-            language=language,
-            country=country,
-            currency=currency,
-            timezone=timezone,
-            locale=locale,
-            subscription_plan="trial",
-            subscription_status="active",
+            company_size=getattr(user_data, 'company_size', "1-10"),
+            industry=getattr(user_data, 'industry', None),
+            country=getattr(user_data, 'country', "FR"),
+            language=getattr(user_data, 'language', "fr"),
+            currency=getattr(user_data, 'currency', "EUR"),
+            timezone=getattr(user_data, 'timezone', "Europe/Paris"),
             is_active=True,
-            is_verified=False,  # Will be verified via email
-            is_onboarded=False,
+            is_verified=False,
+            subscription_plan="free",
+            subscription_status="trial",
         )
         
         db.add(user)
-        await db.flush()  # Get ID without committing
+        await db.commit()
+        await db.refresh(user)
         
         logger.info(f"User registered: {user.email} (ID: {user.id})")
-        
         return user
-    
+
     @staticmethod
-    async def authenticate_user(
+    async def login(
         db: AsyncSession,
         email: str,
         password: str
-    ) -> Optional[User]:
+    ) -> dict:
         """
-        Authenticate a user with email and password.
+        Authenticate user and return tokens.
         
         Args:
             db: Database session
@@ -105,57 +89,231 @@ class AuthService:
             password: Plain text password
             
         Returns:
-            User if authentication successful, None otherwise
+            Dictionary with access_token, refresh_token, and token_type
+            
+        Raises:
+            ValueError: If credentials are invalid or user is not verified/active
         """
-        # Get user by email
+        # Find user by email (case-insensitive)
         result = await db.execute(
-            select(User).where(
-                User.email == email,
-                User.deleted_at.is_(None)
-            )
+            select(User).where(func.lower(User.email) == email.lower())
         )
         user = result.scalar_one_or_none()
         
-        if user is None:
-            logger.warning(f"Login attempt for non-existent email: {email}")
-            return None
+        if not user:
+            raise ValueError("Invalid credentials")
         
         # Verify password
         if not verify_password(password, user.hashed_password):
-            logger.warning(f"Invalid password attempt for user: {email}")
-            return None
+            raise ValueError("Invalid credentials")
         
+        # Check if user is active
         if not user.is_active:
-            logger.warning(f"Login attempt for inactive user: {email}")
-            return None
+            raise ValueError("User account is inactive")
         
-        logger.info(f"User authenticated: {email}")
-        return user
-    
+        # Check if user is verified
+        if not user.is_verified:
+            raise ValueError("Email is not verified")
+        
+        # Update last login timestamp
+        user.last_login_at = datetime.utcnow()
+        await db.commit()
+        
+        # Create tokens
+        tokens = AuthService.create_tokens(user.id)
+        
+        logger.info(f"User logged in: {user.email} (ID: {user.id})")
+        return tokens
+
     @staticmethod
-    def create_tokens(user: User) -> Token:
+    def create_tokens(user_id: UUID) -> dict:
         """
-        Create access and refresh tokens for user.
+        Create access and refresh tokens for a user.
         
         Args:
-            user: User object
+            user_id: User UUID
             
         Returns:
-            Token object with access_token and refresh_token
+            Dictionary with access_token, refresh_token, and token_type
         """
         access_token = create_access_token(
-            data={"sub": str(user.id), "email": user.email}
-        )
-        refresh_token = create_refresh_token(
-            data={"sub": str(user.id)}
+            data={"sub": str(user_id)},
+            expires_delta=timedelta(minutes=settings.access_token_expire_minutes)
         )
         
-        return Token(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            token_type="bearer"
+        refresh_token = create_refresh_token(
+            data={"sub": str(user_id)},
+            expires_delta=timedelta(days=settings.refresh_token_expire_days)
         )
-    
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+
+    @staticmethod
+    async def request_password_reset(
+        db: AsyncSession,
+        email: str
+    ) -> Optional[str]:
+        """
+        Generate password reset token for a user.
+        
+        Args:
+            db: Database session
+            email: User email
+            
+        Returns:
+            Password reset token if user exists, None otherwise
+        """
+        # Find user by email
+        result = await db.execute(
+            select(User).where(func.lower(User.email) == email.lower())
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            # Don't reveal if email exists (security)
+            logger.warning(f"Password reset requested for non-existent email: {email}")
+            return None
+        
+        # Create reset token (expires in 1 hour)
+        reset_token = create_access_token(
+            data={"sub": str(user.id), "type": "password_reset"},
+            expires_delta=timedelta(hours=1)
+        )
+        
+        logger.info(f"Password reset requested for: {user.email}")
+        return reset_token
+
+    @staticmethod
+    async def reset_password(
+        db: AsyncSession,
+        token: str,
+        new_password: str
+    ) -> bool:
+        """
+        Reset user password with reset token.
+        
+        Args:
+            db: Database session
+            token: Password reset token
+            new_password: New plain text password
+            
+        Returns:
+            True if password was reset successfully, False otherwise
+        """
+        # Decode token
+        payload = decode_token(token)
+        
+        if not payload or payload.get("type") != "password_reset":
+            logger.warning("Invalid or expired password reset token")
+            return False
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            return False
+        
+        # Find user
+        result = await db.execute(
+            select(User).where(User.id == UUID(user_id))
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            return False
+        
+        # Update password
+        user.hashed_password = hash_password(new_password)
+        await db.commit()
+        
+        logger.info(f"Password reset successful for: {user.email}")
+        return True
+
+    @staticmethod
+    async def send_verification_email(
+        db: AsyncSession,
+        user_id: UUID,
+        sendgrid_client
+    ) -> bool:
+        """
+        Send email verification link to user.
+        
+        Args:
+            db: Database session
+            user_id: User UUID
+            sendgrid_client: SendGrid client instance
+            
+        Returns:
+            True if email was sent successfully
+        """
+        user = await AuthService.get_user_by_id(db, user_id)
+        
+        if not user:
+            return False
+        
+        # Create verification token (expires in 24 hours)
+        verification_token = create_access_token(
+            data={"sub": str(user.id), "type": "email_verification"},
+            expires_delta=timedelta(hours=24)
+        )
+        
+        # Send email (mock for now, will be implemented with SendGrid)
+        try:
+            await sendgrid_client.send_verification_email(
+                to_email=user.email,
+                token=verification_token
+            )
+            logger.info(f"Verification email sent to: {user.email}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send verification email: {e}")
+            return False
+
+    @staticmethod
+    async def verify_email(
+        db: AsyncSession,
+        token: str
+    ) -> bool:
+        """
+        Verify user email with verification token.
+        
+        Args:
+            db: Database session
+            token: Email verification token
+            
+        Returns:
+            True if email was verified successfully, False otherwise
+        """
+        # Decode token
+        payload = decode_token(token)
+        
+        if not payload or payload.get("type") != "email_verification":
+            logger.warning("Invalid or expired email verification token")
+            return False
+        
+        user_id = payload.get("sub")
+        if not user_id:
+            return False
+        
+        # Find user
+        result = await db.execute(
+            select(User).where(User.id == UUID(user_id))
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            return False
+        
+        # Mark email as verified
+        user.is_verified = True
+        user.email_verified_at = datetime.utcnow()
+        await db.commit()
+        
+        logger.info(f"Email verified for: {user.email}")
+        return True
+
     @staticmethod
     async def get_user_by_id(
         db: AsyncSession,
@@ -169,69 +327,51 @@ class AuthService:
             user_id: User UUID
             
         Returns:
-            User if found, None otherwise
+            User object if found, None otherwise
         """
         result = await db.execute(
-            select(User).where(
-                User.id == user_id,
-                User.deleted_at.is_(None)
-            )
+            select(User).where(User.id == user_id)
         )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def create_user(
+        db: AsyncSession,
+        user_data: UserCreate
+    ) -> User:
+        """Alias for register() - for API compatibility."""
+        return await AuthService.register(db, user_data)
     
     @staticmethod
-    async def get_user_by_email(
+    async def authenticate_user(
         db: AsyncSession,
-        email: str
+        email: str,
+        password: str
     ) -> Optional[User]:
         """
-        Get user by email.
+        Authenticate a user with email and password (legacy method).
+        Use login() instead for full authentication with tokens.
         
         Args:
             db: Database session
             email: User email
+            password: Plain text password
             
         Returns:
-            User if found, None otherwise
+            User object if authentication successful, None otherwise
         """
         result = await db.execute(
-            select(User).where(
-                User.email == email,
-                User.deleted_at.is_(None)
-            )
+            select(User).where(func.lower(User.email) == email.lower())
         )
-        return result.scalar_one_or_none()
-    
-    @staticmethod
-    async def change_password(
-        db: AsyncSession,
-        user: User,
-        current_password: str,
-        new_password: str
-    ) -> bool:
-        """
-        Change user password.
+        user = result.scalar_one_or_none()
         
-        Args:
-            db: Database session
-            user: User object
-            current_password: Current plain text password
-            new_password: New plain text password
-            
-        Returns:
-            True if password changed successfully
-            
-        Raises:
-            ValueError: If current password is incorrect
-        """
-        # Verify current password
-        if not verify_password(current_password, user.hashed_password):
-            raise ValueError("Current password is incorrect")
+        if not user:
+            return None
         
-        # Update password
-        user.hashed_password = get_password_hash(new_password)
-        await db.flush()
+        if not verify_password(password, user.hashed_password):
+            return None
         
-        logger.info(f"Password changed for user: {user.email}")
-        return True
-
+        if not user.is_active:
+            return None
+        
+        return user

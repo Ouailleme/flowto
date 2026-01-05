@@ -253,3 +253,4 @@ code DEMARRAGE_IMMEDIAT.md
 
 *Dernière mise à jour: 5 janvier 2026*
 
+

@@ -620,3 +620,4 @@ const AdminPanel = lazy(() => import('./AdminPanel'))
 
 Chaque composant créé doit suivre ces guidelines pour assurer cohérence et qualité.
 
+

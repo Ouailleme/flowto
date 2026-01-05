@@ -1,47 +1,32 @@
-"""Authentication Pydantic schemas"""
-from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional
-
-
-class Token(BaseModel):
-    """Schema for JWT token response"""
-    access_token: str
-    refresh_token: Optional[str] = None
-    token_type: str = "bearer"
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-                "token_type": "bearer"
-            }
-        }
-    )
-
-
-class TokenData(BaseModel):
-    """Schema for decoded token data"""
-    user_id: Optional[str] = None
-    email: Optional[str] = None
+"""Authentication schemas for login, registration, and token management."""
+from pydantic import BaseModel, EmailStr, Field
 
 
 class LoginRequest(BaseModel):
-    """Schema for login request"""
+    """Login request schema."""
     email: EmailStr
-    password: str
-    
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "email": "user@example.com",
-                "password": "SecurePass123"
-            }
-        }
-    )
+    password: str = Field(..., min_length=6)
 
 
-class RefreshTokenRequest(BaseModel):
-    """Schema for refresh token request"""
+class TokenResponse(BaseModel):
+    """Token response schema."""
+    access_token: str
     refresh_token: str
+    token_type: str = "bearer"
 
+
+class UserResponse(BaseModel):
+    """User response after login/registration."""
+    id: str
+    email: str
+    full_name: str | None = None
+    is_active: bool
+    is_verified: bool
+
+
+class LoginResponse(BaseModel):
+    """Complete login response with user and tokens."""
+    user: UserResponse
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"

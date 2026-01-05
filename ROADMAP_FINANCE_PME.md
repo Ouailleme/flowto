@@ -1239,3 +1239,4 @@ SENTRY_DSN = { type = "secret" }
 *Roadmap créée: Janvier 2026*
 *Prochaine étape: Créer .cursorrules pour code quality*
 
+

@@ -356,3 +356,4 @@ psql $DATABASE_URL -c "SELECT COUNT(*) FROM users;"
 *Créé: Janvier 2026*
 *Next: Semaine 1 validation OU Semaine 2 setup*
 
+
