@@ -1,0 +1,890 @@
+# FinanceAI - Cursor Rules
+# Projet: Automatisation Comptable PME (FinTech)
+# Stack: Python FastAPI + Next.js + PostgreSQL
+# Focus: Sécurité, Tests, Maintenabilité
+
+## 🎯 PROJECT CONTEXT
+
+This is a **FinTech SaaS** for SMB accounting automation (bank reconciliations, invoice reminders, cash flow forecasting).
+
+**Critical Requirements**:
+- SECURITY FIRST (financial data, PCI-DSS, RGPD)
+- HIGH TEST COVERAGE (90%+ required)
+- AUDIT TRAIL (all actions logged)
+- DATA INTEGRITY (no data loss, transactional)
+- PERFORMANCE (p95 < 500ms API responses)
+
+## 🏗️ ARCHITECTURE RULES
+
+### Backend (Python FastAPI)
+
+**1. Project Structure**:
+```
+app/
+├── models/         # SQLAlchemy models (database entities)
+├── schemas/        # Pydantic models (API contracts)
+├── api/           # API routes (thin controllers)
+├── services/      # Business logic (thick services)
+├── integrations/  # External APIs (Bridge, Claude, SendGrid)
+├── workers/       # Celery background tasks
+└── utils/         # Utilities, helpers
+```
+
+**Rule**: ALWAYS separate concerns. API routes should be thin (routing only), business logic goes in services.
+
+**2. Database Models** (SQLAlchemy):
+- Use **async** SQLAlchemy (asyncpg driver)
+- ALWAYS add `created_at` and `updated_at` timestamps
+- ALWAYS add soft delete (`deleted_at`) for critical entities
+- Use UUIDs as primary keys (not integers)
+- Add proper indexes for foreign keys and query fields
+- Add database-level constraints (NOT NULL, CHECK, UNIQUE)
+
+Example:
+```python
+from sqlalchemy import Column, String, DateTime, Boolean, CheckConstraint
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from datetime import datetime
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    amount = Column(Numeric(15, 2), nullable=False)
+    status = Column(String(50), nullable=False, index=True)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Constraints
+    __table_args__ = (
+        CheckConstraint('amount > 0', name='check_amount_positive'),
+        CheckConstraint("status IN ('pending', 'paid', 'overdue', 'cancelled')", name='check_status_valid'),
+    )
+```
+
+**3. Pydantic Schemas** (API validation):
+- Create separate schemas for Create, Update, Read operations
+- Use `ConfigDict(from_attributes=True)` for ORM mode
+- Add field validators for business rules
+- Use proper types (Decimal for money, datetime for dates)
+- Add examples in Field() for API documentation
+
+Example:
+```python
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from decimal import Decimal
+from datetime import date
+from typing import Optional
+
+class InvoiceCreate(BaseModel):
+    client_name: str = Field(..., min_length=1, max_length=255)
+    amount: Decimal = Field(..., gt=0, decimal_places=2)
+    due_date: date = Field(...)
+    
+    @field_validator('due_date')
+    @classmethod
+    def due_date_must_be_future(cls, v: date) -> date:
+        if v < date.today():
+            raise ValueError('due_date must be in the future')
+        return v
+
+class InvoiceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: UUID
+    client_name: str
+    amount: Decimal
+    due_date: date
+    status: str
+    created_at: datetime
+```
+
+**4. API Routes** (FastAPI):
+- Use proper HTTP methods (GET, POST, PUT, PATCH, DELETE)
+- Use HTTP status codes correctly (200, 201, 204, 400, 401, 403, 404, 500)
+- ALWAYS add response_model to endpoints
+- ALWAYS add proper error handling
+- ALWAYS validate permissions (check user owns resource)
+- Add OpenAPI tags and summaries for documentation
+
+Example:
+```python
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+router = APIRouter(prefix="/api/v1/invoices", tags=["invoices"])
+
+@router.post(
+    "/",
+    response_model=InvoiceRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create new invoice"
+)
+async def create_invoice(
+    invoice: InvoiceCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a new invoice for the authenticated user.
+    
+    - **client_name**: Name of the client (required)
+    - **amount**: Invoice amount in EUR (required, > 0)
+    - **due_date**: Payment due date (required, must be future)
+    """
+    try:
+        created_invoice = await InvoiceService.create(
+            db=db,
+            user_id=current_user.id,
+            invoice_data=invoice
+        )
+        return created_invoice
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+```
+
+**5. Services** (Business Logic):
+- Services are **classes** with static methods
+- NEVER do database operations in API routes (use services)
+- ALWAYS use transactions for multi-step operations
+- ALWAYS log important actions (audit trail)
+- ALWAYS validate business rules before database operations
+- Return domain objects, not database models
+
+Example:
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models import Invoice, AuditLog
+from app.schemas import InvoiceCreate
+import logging
+
+logger = logging.getLogger(__name__)
+
+class InvoiceService:
+    @staticmethod
+    async def create(
+        db: AsyncSession,
+        user_id: UUID,
+        invoice_data: InvoiceCreate
+    ) -> Invoice:
+        """Create new invoice with audit logging."""
+        
+        # Business validation
+        if invoice_data.amount > 100000:
+            raise ValueError("Invoice amount exceeds maximum allowed (100,000 EUR)")
+        
+        async with db.begin():  # Transaction
+            # Create invoice
+            invoice = Invoice(
+                user_id=user_id,
+                client_name=invoice_data.client_name,
+                amount=invoice_data.amount,
+                due_date=invoice_data.due_date,
+                status="pending"
+            )
+            db.add(invoice)
+            await db.flush()  # Get ID
+            
+            # Audit log
+            audit = AuditLog(
+                user_id=user_id,
+                action="invoice_created",
+                entity_type="invoice",
+                entity_id=invoice.id,
+                new_values={"amount": str(invoice_data.amount)}
+            )
+            db.add(audit)
+            
+            await db.commit()
+            
+        logger.info(f"Invoice {invoice.id} created for user {user_id}")
+        return invoice
+```
+
+**6. External Integrations**:
+- Create dedicated client classes for each API
+- ALWAYS use retry logic with exponential backoff
+- ALWAYS add timeouts (default: 30s)
+- ALWAYS log API calls and responses
+- NEVER expose API keys in code (use environment variables)
+- Add circuit breaker for critical APIs
+
+Example:
+```python
+import httpx
+from tenacity import retry, stop_after_attempt, wait_exponential
+import logging
+
+logger = logging.getLogger(__name__)
+
+class BridgeClient:
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = "https://api.bridgeapi.io/v2"
+        self.client = httpx.AsyncClient(
+            timeout=30.0,
+            headers={"Authorization": f"Bearer {self.api_key}"}
+        )
+    
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10)
+    )
+    async def get_transactions(
+        self,
+        account_id: str,
+        since: datetime
+    ) -> list[dict]:
+        """Fetch transactions from Bridge API with retry."""
+        try:
+            response = await self.client.get(
+                f"{self.base_url}/accounts/{account_id}/transactions",
+                params={"since": since.isoformat()}
+            )
+            response.raise_for_status()
+            
+            data = response.json()
+            logger.info(f"Fetched {len(data)} transactions for account {account_id}")
+            return data
+            
+        except httpx.HTTPError as e:
+            logger.error(f"Bridge API error: {e}")
+            raise
+```
+
+**7. Celery Workers** (Background Tasks):
+- Use task decorators with retry configuration
+- ALWAYS add task timeouts
+- ALWAYS handle exceptions gracefully
+- Use `.delay()` for async execution
+- Use `.apply_async(countdown=X)` for delayed execution
+- Add task result tracking for long-running tasks
+
+Example:
+```python
+from celery import shared_task
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
+
+@shared_task(
+    bind=True,
+    max_retries=3,
+    time_limit=300,  # 5 minutes
+    soft_time_limit=270  # Warning at 4.5 min
+)
+def sync_bank_transactions(self, bank_account_id: str):
+    """Sync transactions from Bridge API."""
+    try:
+        # Business logic here
+        result = BankSyncService.sync(bank_account_id)
+        logger.info(f"Synced {result['count']} transactions")
+        return result
+        
+    except BridgeAPIError as e:
+        logger.warning(f"Bridge API error, retrying: {e}")
+        # Exponential backoff: 60s, 120s, 240s
+        raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
+        
+    except Exception as e:
+        logger.error(f"Fatal error in sync task: {e}")
+        # Don't retry on unknown errors, alert ops
+        notify_ops_team(f"Task failed: {e}")
+        raise
+```
+
+### Frontend (Next.js + TypeScript)
+
+**1. Project Structure**:
+```
+src/
+├── app/              # Next.js 15 App Router
+│   ├── (auth)/      # Auth routes (layout group)
+│   └── (dashboard)/ # Dashboard routes (layout group)
+├── components/
+│   ├── ui/          # shadcn components
+│   └── features/    # Feature-specific components
+├── lib/             # Utilities, API client
+├── hooks/           # Custom React hooks
+├── store/           # Zustand stores
+└── types/           # TypeScript types
+```
+
+**2. TypeScript Rules**:
+- ALWAYS use strict TypeScript (`strict: true`)
+- NEVER use `any` (use `unknown` if type is truly unknown)
+- ALWAYS define interfaces for props
+- Use `type` for unions, `interface` for objects
+- Use proper generic types for API responses
+
+Example:
+```typescript
+// ❌ BAD
+function fetchData(id: any): any {
+  return fetch(`/api/data/${id}`).then(r => r.json());
+}
+
+// ✅ GOOD
+interface ApiResponse<T> {
+  data: T;
+  error?: string;
+}
+
+interface Invoice {
+  id: string;
+  amount: number;
+  client_name: string;
+}
+
+async function fetchInvoice(id: string): Promise<ApiResponse<Invoice>> {
+  const response = await fetch(`/api/invoices/${id}`);
+  return response.json();
+}
+```
+
+**3. Components**:
+- Use functional components (no class components)
+- Use TypeScript interfaces for props
+- ALWAYS add display names for debugging
+- Extract reusable logic into custom hooks
+- Use proper React patterns (composition over inheritance)
+- Add loading and error states
+
+Example:
+```typescript
+import { FC } from 'react';
+import { Loader2 } from 'lucide-react';
+
+interface InvoiceCardProps {
+  invoice: Invoice;
+  onEdit?: (id: string) => void;
+}
+
+export const InvoiceCard: FC<InvoiceCardProps> = ({ invoice, onEdit }) => {
+  const { isLoading, mutate } = useUpdateInvoice();
+  
+  if (isLoading) {
+    return <Loader2 className="animate-spin" />;
+  }
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{invoice.client_name}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-2xl font-bold">
+          {formatCurrency(invoice.amount)}
+        </p>
+      </CardContent>
+    </Card>
+  );
+};
+
+InvoiceCard.displayName = 'InvoiceCard';
+```
+
+**4. API Client**:
+- Use a centralized API client (axios or fetch wrapper)
+- ALWAYS add authentication headers
+- ALWAYS handle errors globally
+- Add request/response interceptors for auth
+- Use TanStack Query for data fetching
+
+Example:
+```typescript
+// lib/api.ts
+import axios, { AxiosError } from 'axios';
+import { getSession } from './auth';
+
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 30000,
+});
+
+// Request interceptor: Add auth token
+apiClient.interceptors.request.use(async (config) => {
+  const session = await getSession();
+  if (session?.accessToken) {
+    config.headers.Authorization = `Bearer ${session.accessToken}`;
+  }
+  return config;
+});
+
+// Response interceptor: Handle errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (error.response?.status === 401) {
+      // Redirect to login
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export { apiClient };
+
+// Usage with TanStack Query
+import { useQuery } from '@tanstack/react-query';
+
+export function useInvoices() {
+  return useQuery({
+    queryKey: ['invoices'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<Invoice[]>('/invoices');
+      return data;
+    },
+    staleTime: 60000, // 1 minute
+  });
+}
+```
+
+**5. Forms**:
+- Use React Hook Form + Zod for validation
+- ALWAYS validate on client AND server
+- Show inline errors
+- Disable submit during submission
+- Show success/error feedback
+
+Example:
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const invoiceSchema = z.object({
+  client_name: z.string().min(1, 'Client name required'),
+  amount: z.number().positive('Amount must be positive'),
+  due_date: z.date().min(new Date(), 'Due date must be in future'),
+});
+
+type InvoiceFormData = z.infer<typeof invoiceSchema>;
+
+export const InvoiceForm: FC = () => {
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<InvoiceFormData>({
+    resolver: zodResolver(invoiceSchema),
+  });
+  
+  const { mutate } = useCreateInvoice();
+  
+  const onSubmit = (data: InvoiceFormData) => {
+    mutate(data, {
+      onSuccess: () => toast.success('Invoice created!'),
+      onError: (error) => toast.error(error.message),
+    });
+  };
+  
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <Input
+        {...register('client_name')}
+        error={errors.client_name?.message}
+      />
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Creating...' : 'Create Invoice'}
+      </Button>
+    </form>
+  );
+};
+```
+
+## 🔒 SECURITY RULES
+
+**1. Authentication**:
+- Use JWT with refresh tokens
+- Store tokens in httpOnly cookies (NOT localStorage)
+- Add CSRF protection
+- Implement rate limiting (10 req/min for login)
+- Hash passwords with bcrypt (cost factor 12)
+- Add optional 2FA (TOTP)
+
+**2. Authorization**:
+- ALWAYS check user owns resource before action
+- Use row-level security (RLS) in PostgreSQL
+- Implement role-based access control (RBAC)
+- Never trust client-side data
+
+Example:
+```python
+async def get_invoice(
+    invoice_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    invoice = await InvoiceService.get_by_id(db, invoice_id)
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # CRITICAL: Check ownership
+    if invoice.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    return invoice
+```
+
+**3. Data Protection**:
+- NEVER log sensitive data (passwords, tokens, IBAN)
+- Encrypt sensitive fields in database (if needed)
+- Use parameterized queries (SQLAlchemy ORM does this)
+- Sanitize all user inputs
+- Add rate limiting on all endpoints
+
+**4. API Security**:
+- Validate ALL inputs (Pydantic)
+- Set proper CORS headers
+- Add security headers (helmet)
+- Use HTTPS only in production
+- Verify webhook signatures from external APIs
+
+## ✅ TESTING RULES
+
+**Target: 90%+ code coverage**
+
+**1. Backend Tests** (Pytest):
+- Write tests for ALL service methods
+- Use pytest fixtures for test data
+- Mock external APIs
+- Use factories for test objects
+- Test edge cases and error conditions
+
+Structure:
+```
+tests/
+├── unit/           # Unit tests (services, utils)
+├── integration/    # Integration tests (API + DB)
+└── e2e/           # End-to-end tests (full flows)
+```
+
+Example:
+```python
+# tests/unit/services/test_invoice_service.py
+
+import pytest
+from decimal import Decimal
+from datetime import date, timedelta
+
+@pytest.fixture
+def sample_invoice_data():
+    return {
+        "client_name": "Test Client",
+        "amount": Decimal("1500.00"),
+        "due_date": date.today() + timedelta(days=30)
+    }
+
+@pytest.mark.asyncio
+async def test_create_invoice_success(db_session, test_user, sample_invoice_data):
+    """Test successful invoice creation."""
+    invoice = await InvoiceService.create(
+        db=db_session,
+        user_id=test_user.id,
+        invoice_data=InvoiceCreate(**sample_invoice_data)
+    )
+    
+    assert invoice.id is not None
+    assert invoice.client_name == sample_invoice_data["client_name"]
+    assert invoice.status == "pending"
+    assert invoice.user_id == test_user.id
+
+@pytest.mark.asyncio
+async def test_create_invoice_exceeds_max_amount(db_session, test_user):
+    """Test invoice creation fails with amount > 100k."""
+    with pytest.raises(ValueError, match="exceeds maximum"):
+        await InvoiceService.create(
+            db=db_session,
+            user_id=test_user.id,
+            invoice_data=InvoiceCreate(
+                client_name="Big Client",
+                amount=Decimal("150000.00"),
+                due_date=date.today() + timedelta(days=30)
+            )
+        )
+
+# tests/integration/test_invoice_api.py
+
+@pytest.mark.integration
+async def test_invoice_crud_flow(client, auth_headers):
+    """Test complete invoice CRUD flow."""
+    # Create
+    response = await client.post(
+        "/api/v1/invoices",
+        json={
+            "client_name": "Integration Test",
+            "amount": 2500.00,
+            "due_date": "2026-02-15"
+        },
+        headers=auth_headers
+    )
+    assert response.status_code == 201
+    invoice_id = response.json()["id"]
+    
+    # Read
+    response = await client.get(f"/api/v1/invoices/{invoice_id}", headers=auth_headers)
+    assert response.status_code == 200
+    
+    # Update
+    response = await client.patch(
+        f"/api/v1/invoices/{invoice_id}",
+        json={"amount": 3000.00},
+        headers=auth_headers
+    )
+    assert response.status_code == 200
+    assert response.json()["amount"] == 3000.00
+    
+    # Delete
+    response = await client.delete(f"/api/v1/invoices/{invoice_id}", headers=auth_headers)
+    assert response.status_code == 204
+```
+
+**2. Frontend Tests** (Vitest + Testing Library):
+- Test user interactions
+- Test loading/error states
+- Test form validation
+- Mock API calls
+
+Example:
+```typescript
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { InvoiceForm } from './InvoiceForm';
+
+describe('InvoiceForm', () => {
+  it('should validate required fields', async () => {
+    render(<InvoiceForm />);
+    
+    const submitButton = screen.getByRole('button', { name: /create/i });
+    await userEvent.click(submitButton);
+    
+    expect(await screen.findByText('Client name required')).toBeInTheDocument();
+  });
+  
+  it('should submit form with valid data', async () => {
+    const mockCreate = vi.fn();
+    render(<InvoiceForm onSubmit={mockCreate} />);
+    
+    await userEvent.type(screen.getByLabelText(/client name/i), 'Test Client');
+    await userEvent.type(screen.getByLabelText(/amount/i), '1500');
+    await userEvent.type(screen.getByLabelText(/due date/i), '2026-02-15');
+    
+    await userEvent.click(screen.getByRole('button', { name: /create/i }));
+    
+    await waitFor(() => {
+      expect(mockCreate).toHaveBeenCalledWith({
+        client_name: 'Test Client',
+        amount: 1500,
+        due_date: new Date('2026-02-15'),
+      });
+    });
+  });
+});
+```
+
+## 📝 CODE QUALITY RULES
+
+**1. Python**:
+- Use **Black** for formatting (line length 100)
+- Use **Ruff** for linting
+- Use **mypy** for type checking
+- Follow PEP 8 naming conventions
+- Add docstrings to all public functions
+- Use type hints everywhere
+
+**2. TypeScript**:
+- Use **Prettier** for formatting
+- Use **ESLint** (Next.js config)
+- No `console.log` in production code (use logger)
+- Prefer `const` over `let`
+- Use arrow functions
+
+**3. General**:
+- Keep functions small (< 50 lines)
+- One responsibility per function
+- Meaningful variable names (no `x`, `temp`, `data`)
+- Add comments for complex logic only
+- Remove dead code immediately
+- No TODOs in main branch
+
+## 📊 MONITORING & LOGGING
+
+**1. Logging**:
+- Use structured logging (JSON format)
+- Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+- NEVER log sensitive data (passwords, tokens, PII)
+- Add request ID to all logs for tracing
+
+Example:
+```python
+import logging
+import structlog
+
+logger = structlog.get_logger(__name__)
+
+logger.info(
+    "invoice_created",
+    invoice_id=str(invoice.id),
+    user_id=str(user_id),
+    amount=float(invoice.amount),
+    client_name=invoice.client_name  # OK to log
+    # NEVER: iban=invoice.iban  ❌
+)
+```
+
+**2. Error Tracking**:
+- Use Sentry for error tracking
+- Add context to errors (user_id, request_id)
+- Set up alerts for critical errors
+- Monitor error rate and p95 latency
+
+**3. Metrics**:
+- Track API response times
+- Monitor database query performance
+- Track background job success/failure rates
+- Monitor external API call latency
+
+## 🚀 DEPLOYMENT RULES
+
+**1. Git Workflow**:
+- Use feature branches (`feature/invoice-reminders`)
+- NEVER commit to `main` directly
+- Require PR reviews (minimum 1)
+- Run CI/CD on all PRs
+- Use conventional commits (feat:, fix:, docs:)
+
+**2. Environment Variables**:
+- NEVER commit secrets to git
+- Use `.env.example` for documentation
+- Different configs for dev/staging/prod
+- Validate required env vars at startup
+
+**3. Database Migrations**:
+- Use Alembic for migrations
+- ALWAYS test migrations on staging first
+- Write reversible migrations (upgrade + downgrade)
+- Never modify old migrations
+- Add indexes in separate migrations (large tables)
+
+**4. Deployment**:
+- Use blue-green deployment or rolling updates
+- ALWAYS deploy to staging first
+- Run smoke tests after deployment
+- Have rollback plan ready
+- Deploy during low-traffic hours (if critical)
+
+## 💬 COMMENTS & DOCUMENTATION
+
+**When to comment**:
+- Complex algorithms or business logic
+- Non-obvious workarounds
+- Public APIs (docstrings)
+- TODOs with ticket reference (ONLY in feature branches)
+
+**When NOT to comment**:
+- Obvious code (`# increment counter` ❌)
+- Instead of good variable names
+- Commented-out code (delete it)
+
+Example:
+```python
+# ❌ BAD
+# This function gets the user
+def get_u(id):
+    # Query the database
+    u = db.query(User).filter(User.id == id).first()
+    # Return the user
+    return u
+
+# ✅ GOOD
+async def get_user_by_id(user_id: UUID) -> Optional[User]:
+    """
+    Retrieve user by ID.
+    
+    Args:
+        user_id: UUID of the user to retrieve
+        
+    Returns:
+        User object if found, None otherwise
+    """
+    return await db.query(User).filter(User.id == user_id).first()
+```
+
+## 🎨 UI/UX RULES
+
+**1. Accessibility**:
+- Use semantic HTML
+- Add ARIA labels where needed
+- Ensure keyboard navigation works
+- Use proper color contrast (WCAG AA)
+- Add loading states for async operations
+- Show error messages clearly
+
+**2. Responsive Design**:
+- Mobile-first approach
+- Test on mobile, tablet, desktop
+- Use Tailwind responsive classes (sm:, md:, lg:)
+- No horizontal scrolling
+
+**3. User Feedback**:
+- Show loading spinners for async operations
+- Show success/error toasts for actions
+- Disable buttons during submission
+- Validate forms on blur and submit
+- Provide helpful error messages
+
+## 🔧 PERFORMANCE RULES
+
+**Backend**:
+- Use database indexes on foreign keys and query fields
+- Implement pagination for list endpoints (default 50 items)
+- Use database-level aggregations (COUNT, SUM)
+- Cache expensive computations (Redis)
+- Use async/await everywhere
+- Add query timeouts (30s max)
+
+**Frontend**:
+- Use Next.js Image component for images
+- Implement code splitting (dynamic imports)
+- Use React.memo for expensive components
+- Debounce search inputs (300ms)
+- Use virtual scrolling for large lists
+- Optimize bundle size (< 200kb initial load)
+
+## 📋 PR CHECKLIST
+
+Before submitting a PR, ensure:
+- [ ] All tests pass (`pytest` + `vitest`)
+- [ ] Code coverage > 90%
+- [ ] Linters pass (Black, Ruff, ESLint, Prettier)
+- [ ] No console.log or print statements
+- [ ] Database migrations tested
+- [ ] API documentation updated
+- [ ] New endpoints have tests
+- [ ] Security best practices followed
+- [ ] Performance tested (no N+1 queries)
+- [ ] Reviewed own code first
+
+---
+
+## 🎯 KEY MANTRAS
+
+1. **Security First**: This is a FinTech app handling financial data
+2. **Test Everything**: 90%+ coverage is not optional
+3. **Type Safety**: Use TypeScript strict mode, Python type hints
+4. **Audit Trail**: Log all important actions
+5. **Error Handling**: Always handle errors gracefully
+6. **Performance**: Monitor and optimize query performance
+7. **Code Quality**: Clean, readable, maintainable code
+8. **Documentation**: Code should be self-documenting
+
+---
+
+*These rules are mandatory for the FinanceAI project. Any code not following these rules will be rejected in code review.*
+
