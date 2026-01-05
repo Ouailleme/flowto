@@ -1,0 +1,119 @@
+"""User Pydantic schemas for API validation"""
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
+from uuid import UUID
+from datetime import datetime
+from typing import Optional
+from app.models.user import LanguageEnum, CurrencyEnum, CountryEnum
+
+
+class UserCreate(BaseModel):
+    """Schema for creating a new user"""
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=100)
+    company_name: str = Field(..., min_length=1, max_length=255)
+    company_size: Optional[str] = Field(None, pattern="^(1-10|10-50|50-200|200\\+)$")
+    
+    # International settings (optional, defaults will be applied)
+    language: Optional[LanguageEnum] = None
+    country: Optional[CountryEnum] = None
+    currency: Optional[CurrencyEnum] = None
+    timezone: Optional[str] = None
+    
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Validate password strength"""
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "email": "user@example.com",
+                "password": "SecurePass123",
+                "company_name": "My Company",
+                "company_size": "10-50",
+                "language": "fr",
+                "country": "FR",
+                "currency": "EUR",
+                "timezone": "Europe/Paris"
+            }
+        }
+    )
+
+
+class UserUpdate(BaseModel):
+    """Schema for updating user information"""
+    email: Optional[EmailStr] = None
+    company_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    company_size: Optional[str] = Field(None, pattern="^(1-10|10-50|50-200|200\\+)$")
+    language: Optional[LanguageEnum] = None
+    country: Optional[CountryEnum] = None
+    currency: Optional[CurrencyEnum] = None
+    timezone: Optional[str] = None
+    locale: Optional[str] = None
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "company_name": "Updated Company Name",
+                "language": "en",
+                "currency": "USD"
+            }
+        }
+    )
+
+
+class UserRead(BaseModel):
+    """Schema for reading user data (response)"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: UUID
+    email: str
+    company_name: str
+    company_size: Optional[str]
+    language: LanguageEnum
+    country: CountryEnum
+    currency: CurrencyEnum
+    timezone: str
+    locale: str
+    subscription_plan: str
+    subscription_status: str
+    is_active: bool
+    is_verified: bool
+    is_onboarded: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class UserInDB(UserRead):
+    """Schema for user data in database (includes hashed_password)"""
+    hashed_password: str
+
+
+class PasswordChange(BaseModel):
+    """Schema for changing password"""
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=100)
+    
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        """Validate password strength"""
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
+
