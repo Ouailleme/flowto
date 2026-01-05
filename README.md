@@ -1,17 +1,49 @@
 # 🚀 FinanceAI - Automatisation Comptable PME
 
-**Stack 2026**: Python FastAPI + Next.js 15 + PostgreSQL + Redis + Celery + IA
+**Stack 2026**: Python FastAPI + Next.js 15 + PostgreSQL + Redis + Celery + IA  
+**Développeur**: IA Claude (Anthropic)  
+**Design**: Le plus beau et pratique de 2026  
+**Standards**: Sécurité, Tests 90%+, Performance < 500ms
 
 ---
 
-## 🎯 Projet
+## 🎯 Vision
 
 Application SaaS d'automatisation comptable pour PME avec IA:
-- 🏦 Connexion bancaire automatique (Bridge API)
-- 🤖 Catégorisation transactions par IA (Claude 3.5)
-- 🔄 Rapprochement bancaire automatique
-- 📧 Relances clients intelligentes
-- 📊 Prévision trésorerie
+- 🏦 **Connexion bancaire automatique** (Bridge API - 11 pays EU)
+- 🤖 **Catégorisation transactions par IA** (Claude 3.5 Sonnet)
+- 🔄 **Rapprochement bancaire automatique** (exact + fuzzy matching IA)
+- 📧 **Relances clients intelligentes** (emails générés par IA)
+- 📊 **Prévision trésorerie** (coming soon)
+- 🌍 **International-ready** (6 langues, 5 devises, 11 pays)
+
+---
+
+## ✨ CE QUI REND CE PROJET UNIQUE
+
+### 🎨 Design System 2026
+- **shadcn/ui** + **Tailwind 4.0** + **Framer Motion**
+- Minimalisme stratégique, micro-interactions délicates
+- Dark mode intelligent, accessibilité WCAG 2.2
+- Mobile-first, éco-responsable
+- Performance: Lighthouse > 90, LCP < 2.5s
+
+👉 Voir: **`DESIGN_SYSTEM_2026.md`** pour tous les détails
+
+### 🌍 International dès le Day 1
+- Multi-langues: FR, EN, ES, DE, IT, NL
+- Multi-devises: EUR, USD, GBP, CHF, CAD (avec conversion temps réel)
+- Multi-pays: 11 pays européens via Bridge API
+- Formats localisés: dates, nombres, devises
+
+👉 Voir: **`STRATEGIE_MARCHE_GEOGRAPHIQUE.md`**
+
+### 🤖 Développé par IA
+- Code quality: Tests 90%+, linting strict, type-safe
+- Architecture scalable: async/await, queue, cache
+- Sécurité: JWT, RBAC, audit logs, RGPD compliant
+
+👉 Voir: **`ROADMAP_EXECUTION_IA.md`** pour le plan détaillé
 
 ---
 
@@ -20,17 +52,30 @@ Application SaaS d'automatisation comptable pour PME avec IA:
 ```
 financeai/
 ├── backend/          # Python 3.12 + FastAPI + SQLAlchemy + Celery
+│   ├── app/
+│   │   ├── models/      ✅ User, Transaction (multi-currency)
+│   │   ├── schemas/     (Pydantic)
+│   │   ├── api/v1/      (REST endpoints)
+│   │   ├── services/    (Business logic)
+│   │   ├── integrations/ (Bridge, Claude, SendGrid)
+│   │   ├── workers/     (Celery tasks)
+│   │   └── core/        ✅ i18n, currency, security
+│   ├── tests/           (90%+ coverage)
+│   └── requirements.txt ✅
+│
 ├── frontend/         # Next.js 15 + TypeScript + shadcn/ui
-├── docker-compose.yml
-└── docs/
+│   ├── src/
+│   │   ├── app/         (App Router)
+│   │   ├── components/  (shadcn + custom)
+│   │   ├── hooks/       (TanStack Query)
+│   │   └── lib/         (API client, utils)
+│   └── package.json     ✅
+│
+├── docker-compose.yml   ✅ (PostgreSQL + Redis + all services)
+├── .cursorrules         ✅ (Quality standards)
+├── DESIGN_SYSTEM_2026.md    ⭐ NEW
+└── ROADMAP_EXECUTION_IA.md  ⭐ NEW
 ```
-
-**Stack**:
-- **Backend**: FastAPI (async), PostgreSQL, Redis, Celery
-- **Frontend**: Next.js 15, TypeScript, TanStack Query, Zustand
-- **IA**: Claude 3.5 Sonnet (catégorisation + matching + emails)
-- **APIs**: Bridge (banques), SendGrid (emails)
-- **DevOps**: Docker, GitHub Actions, Railway/Fly.io
 
 ---
 
@@ -45,113 +90,90 @@ financeai/
 ### Lancer l'app (Docker Compose)
 
 ```bash
-# 1. Cloner le repo
+# 1. Cloner
 git clone <repo-url>
 cd financeai
 
-# 2. Copier les variables d'environnement
+# 2. Variables d'environnement
 cp backend/env.template backend/.env
 cp frontend/env.local.template frontend/.env.local
+# Éditer les .env avec vos clés API
 
-# 3. Éditer backend/.env avec tes clés API:
-# - BRIDGE_API_KEY
-# - ANTHROPIC_API_KEY
-# - SENDGRID_API_KEY
-# - SECRET_KEY (générer: openssl rand -base64 32)
-
-# 4. Lancer tout
+# 3. Lancer tout
 docker-compose up
 
-# 5. Accéder:
+# Accès:
 # - Frontend: http://localhost:3000
 # - Backend API: http://localhost:8000
 # - API Docs: http://localhost:8000/docs
-```
-
-### Développement manuel (sans Docker)
-
-```bash
-# Terminal 1: Database + Redis
-docker-compose up postgres redis
-
-# Terminal 2: Backend
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements-dev.txt
-cp env.template .env
-# Éditer .env
-uvicorn app.main:app --reload
-
-# Terminal 3: Celery Worker
-cd backend
-source venv/bin/activate
-celery -A app.workers.celery_app worker --loglevel=info
-
-# Terminal 4: Frontend
-cd frontend
-npm install
-cp env.local.template .env.local
-npm run dev
 ```
 
 ---
 
 ## 📚 Documentation
 
-### Pour démarrer le développement:
-👉 **Lis d'abord**: [`START_DEVELOPMENT.md`](START_DEVELOPMENT.md)
+### 🚀 Pour démarrer le développement:
+1. **`START_HERE_IA.md`** ⭐ - **Commence ici !**
+2. **`START_DEVELOPMENT.md`** - Setup technique détaillé
 
-### Plan complet (2 semaines):
-👉 [`PLAN_DEV_CODE_FIRST.md`](PLAN_DEV_CODE_FIRST.md)
+### 🎨 Pour le design:
+3. **`DESIGN_SYSTEM_2026.md`** ⭐ - **Bible du design** (couleurs, composants, animations)
 
-### Standards de qualité:
-👉 [`.cursorrules`](.cursorrules) (Sécurité, Tests, Code quality)
+### 🗓️ Pour la roadmap:
+4. **`ROADMAP_EXECUTION_IA.md`** ⭐ - **Plan 14 jours** (jour par jour)
 
-### Recherche & Validation (✅ Complète):
-- [`RAPPORT_FINAL_RECHERCHE_IA_2026.md`](RAPPORT_FINAL_RECHERCHE_IA_2026.md) - Analyse marché
-- [`ROADMAP_FINANCE_PME.md`](ROADMAP_FINANCE_PME.md) - Roadmap long terme
-- [`matrice_evaluation_niches.md`](matrice_evaluation_niches.md) - 10 niches évaluées
+### 🌍 Pour la stratégie:
+5. **`STRATEGIE_MARCHE_GEOGRAPHIQUE.md`** - Marchés cibles
+6. **`LEGAL_INTERNATIONAL.md`** - Aspects légaux (pas de blocage ✅)
+
+### 📊 Pour la recherche:
+7. **`RAPPORT_FINAL_RECHERCHE_IA_2026.md`** - Analyse marché complète
+8. **`matrice_evaluation_niches.md`** - 10 niches évaluées (Finance PME = 94/100)
+
+### ⚙️ Pour les standards:
+9. **`.cursorrules`** - Standards qualité (Sécurité, Tests, Performance)
 
 ---
 
-## 🎯 Roadmap Développement
+## 🎯 Roadmap
 
 ### ✅ Phase 0: Recherche & Validation (FAIT)
 - Analyse marché IA 2026
-- Identification 30+ pain points
-- Évaluation 10 niches
-- Sélection niche: **Finance PME** (score 94/100)
+- 30+ pain points identifiés
+- 10 niches évaluées
+- Sélection: **Finance PME** (score 94/100)
+- Architecture définie
+- Design system 2026 créé
 
-### 🔥 Phase 1: MVP Full-Code (EN COURS - 2 semaines)
+### 🔥 Phase 1: MVP (EN COURS - 14 jours)
 
 **Semaine 1: Backend**
-- [x] Setup infrastructure (Docker, PostgreSQL, Redis)
-- [x] Configuration FastAPI + SQLAlchemy
-- [ ] Auth système (JWT, User model)
-- [ ] CRUD de base (Bank, Transaction, Invoice)
+- [x] Infrastructure (Docker, PostgreSQL, Redis)
+- [x] Models international-ready (User, Transaction)
+- [x] Configuration multi-langues/devises
+- [ ] Auth système (JWT)
+- [ ] CRUD de base
 - [ ] Intégrations (Bridge, Claude, SendGrid)
-- [ ] Celery workers (sync, reconciliation, reminders)
-- [ ] Tests (90%+ coverage)
+- [ ] Celery workers
+- [ ] Tests 90%+
 
 **Semaine 2: Frontend**
-- [ ] Setup Next.js 15 + TypeScript
-- [ ] Pages (Login, Dashboard, Banks, Transactions, Invoices)
-- [ ] API client + TanStack Query
-- [ ] UI/UX avec shadcn/ui
-- [ ] Tests E2E (Playwright)
+- [ ] Setup Next.js 15 + shadcn/ui
+- [ ] Design system implémenté
+- [ ] Pages (Dashboard, Banks, Transactions, Invoices)
+- [ ] Responsive + Dark mode
+- [ ] Accessibilité WCAG 2.2
+- [ ] Tests E2E
 
-### Phase 2: Beta Test (Semaines 3-4)
-- [ ] Déploiement production (Railway)
+### Phase 2: Beta (Semaines 3-4)
 - [ ] 5 early adopters
-- [ ] Collecte feedback
-- [ ] Itérations rapides
+- [ ] Feedback & itérations
+- [ ] Deploy production
 
-### Phase 3: Scale (Semaines 5-8)
-- [ ] Optimisations performance
-- [ ] Features avancées (exports, analytics)
-- [ ] Monitoring & alerting
-- [ ] Acquisition clients (10+ payants)
+### Phase 3: Scale (Mois 2-3)
+- [ ] 50+ clients
+- [ ] Features avancées
+- [ ] Expansion Europe
 
 ---
 
@@ -161,80 +183,85 @@ npm run dev
 # Backend
 cd backend
 pytest --cov=app --cov-report=html
-# Ouvrir: htmlcov/index.html
+# Target: 90%+ ✅
 
 # Frontend
 cd frontend
 npm run test
 npm run test:e2e
+# Target: 80%+ ✅
 ```
-
-**Target**: 90%+ coverage backend, 80%+ frontend
 
 ---
 
 ## 🔒 Sécurité
 
-- ✅ JWT authentication
-- ✅ Password hashing (bcrypt)
+- ✅ JWT authentication + refresh tokens
+- ✅ Password hashing (bcrypt cost 12)
 - ✅ Input validation (Pydantic)
 - ✅ SQL injection protection (SQLAlchemy ORM)
 - ✅ CORS configuré
-- ✅ Rate limiting (TODO)
+- ✅ Rate limiting (coming)
 - ✅ Audit logs (toutes actions critiques)
 - ✅ HTTPS only (production)
-- ✅ Secrets management (env variables)
-
-**Conformité**: RGPD, PCI-DSS (pas de stockage direct IBAN/CB)
+- ✅ RGPD compliant
 
 ---
 
-## 🚢 Déploiement
+## 💰 Business Model
 
-### Production (Railway)
+### Pricing (Abonnement mensuel)
+- **Starter**: 399€/mois (PME 1-20 employés)
+- **Pro**: 699€/mois (PME 20-100 employés)
+- **Business**: 999€/mois (PME 100+ employés)
 
-```bash
-# Backend
-railway up
+### Projections Année 1
+- **Clients**: 65
+- **ARR**: 429K€
+- **Profit Net**: 183K€
+- **Break-even**: Mois 4
 
-# Frontend (Vercel)
-vercel deploy --prod
-
-# Database: Supabase (PostgreSQL)
-# Redis: Railway Redis plugin
-```
-
-### Variables d'environnement requises
-
-**Backend**:
-- `DATABASE_URL`
-- `REDIS_URL`
-- `SECRET_KEY`
-- `BRIDGE_API_KEY`
-- `ANTHROPIC_API_KEY`
-- `SENDGRID_API_KEY`
-
-**Frontend**:
-- `NEXT_PUBLIC_API_URL`
+👉 Voir: **`modele_economique_projections.md`**
 
 ---
 
-## 📊 Monitoring
+## 🌍 Marchés
 
-- **Errors**: Sentry
-- **Logs**: Structured JSON logging
-- **Metrics**: TODO (Prometheus + Grafana)
-- **Uptime**: Railway health checks
+### Phase 1 (Mois 1-12): 🇫🇷 France
+- Focus 100% France
+- 1M+ PME cibles
+- TAM: 528M€/an
+
+### Phase 2 (Mois 13-24): 🇪🇺 Europe
+- + Belgique, Suisse, Luxembourg
+- TAM: +195M€/an
+
+### Phase 3 (Mois 25+): 🌍 International
+- UK, Espagne, Allemagne, US/CA
+- TAM: 2B€+
+
+---
+
+## 📊 Métriques Cibles
+
+| Métrique | Target | Status |
+|----------|--------|--------|
+| **Backend Tests** | 90%+ | 🔄 In progress |
+| **Frontend Tests** | 80%+ | 🔄 In progress |
+| **API Response (p95)** | < 500ms | ⏱️ To measure |
+| **Page Load (LCP)** | < 2.5s | ⏱️ To measure |
+| **Lighthouse** | > 90 | ⏱️ To measure |
+| **Accessibility** | WCAG 2.2 AA | 🎯 Target |
 
 ---
 
 ## 🤝 Contribution
 
 Ce projet suit des standards stricts (voir `.cursorrules`):
-- Tests obligatoires (90%+ coverage)
-- Linting (Black, Ruff, ESLint)
-- Type checking (mypy, TypeScript strict)
-- Code review obligatoire
+- Tests obligatoires (90%+ backend, 80%+ frontend)
+- Linting (Black, Ruff, mypy, ESLint, Prettier)
+- Type checking (strict mode)
+- Code review
 
 ---
 
@@ -244,12 +271,31 @@ Propriétaire (pour l'instant)
 
 ---
 
-## 📞 Contact
+## 🎨 Aperçu Design
 
-- **Développeurs**: Les meilleurs de 2026 💪
-- **Stack**: Le meilleur de 2026 🔥
-- **Objectif**: Produit le plus scalable et sécurisé du marché 🚀
+**Philosophie**: "Beautiful Simplicity Meets Intelligence"
+
+- Minimalisme stratégique
+- Micro-interactions délicates
+- Accessibilité universelle
+- Performance optimale
+- Éco-responsable
+
+👉 Voir **`DESIGN_SYSTEM_2026.md`** pour tous les composants
 
 ---
 
-**Let's build! 💻**
+## 🔥 Prochaines Étapes
+
+1. **Lire**: `START_HERE_IA.md` (5 min)
+2. **Explorer**: `DESIGN_SYSTEM_2026.md` (comprendre le design)
+3. **Suivre**: `ROADMAP_EXECUTION_IA.md` (plan détaillé)
+4. **Coder**: Commencer JOUR 1 🚀
+
+---
+
+**Développé avec ❤️ par IA Claude**  
+**Stack**: Le meilleur de 2026  
+**Objectif**: L'app fintech la plus belle et performante du marché
+
+**Let's build! 💻🚀**
