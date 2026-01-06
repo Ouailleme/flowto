@@ -71,7 +71,7 @@ export function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Get status color for badges
+ * Get status color for badges (invoice, transaction, etc.)
  */
 export function getStatusColor(status: string): string {
   const statusColors: Record<string, string> = {
