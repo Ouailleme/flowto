@@ -69,3 +69,28 @@ export function truncate(str: string, length: number = 50): string {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+/**
+ * Get status color for badges
+ */
+export function getStatusColor(status: string): string {
+  const statusColors: Record<string, string> = {
+    // Invoice statuses
+    pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    paid: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    overdue: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+    cancelled: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+    
+    // Transaction statuses
+    completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    pending_verification: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    reconciled: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+    
+    // General statuses
+    active: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    inactive: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+    draft: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+  }
+  
+  return statusColors[status.toLowerCase()] || "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+}
