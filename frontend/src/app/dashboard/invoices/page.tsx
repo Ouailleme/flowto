@@ -23,8 +23,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Plus, Search, Mail, Trash2, Edit } from "lucide-react"
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils"
+import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
+
+// Temporary inline function to bypass Vercel cache issue
+const getStatusColor = (status: string): string => {
+  const colors: Record<string, string> = {
+    pending: "bg-yellow-100 text-yellow-800",
+    paid: "bg-green-100 text-green-800",
+    overdue: "bg-red-100 text-red-800",
+    cancelled: "bg-gray-100 text-gray-800",
+  }
+  return colors[status] || "bg-gray-100 text-gray-800"
+}
 
 export default function InvoicesPage() {
   const [page, setPage] = useState(1)
