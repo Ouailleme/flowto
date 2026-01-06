@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useInvoices, useDeleteInvoice } from "@/hooks/use-invoices"
+import { useDownloadInvoicePDF, useSendInvoiceEmail } from "@/hooks/use-invoice-pdf"
 import {
   Table,
   TableBody,
@@ -22,7 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Plus, Search, Mail, Trash2, Edit } from "lucide-react"
+import { Plus, Search, Mail, Trash2, Edit, Download, Send } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Link from "next/link"
 
@@ -41,9 +42,13 @@ export default function InvoicesPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState("")
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [sendEmailId, setSendEmailId] = useState<string | null>(null)
+  const [emailRecipient, setEmailRecipient] = useState("")
   
   const { data, isLoading } = useInvoices({ page, page_size: 20 })
   const { mutate: deleteInvoice, isPending: isDeleting } = useDeleteInvoice()
+  const { mutate: downloadPDF, isPending: isDownloading } = useDownloadInvoicePDF()
+  const { mutate: sendEmail, isPending: isSending } = useSendInvoiceEmail()
 
   const invoices = data?.invoices || []
   const totalPages = data?.total_pages || 1
@@ -194,6 +199,28 @@ export default function InvoicesPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Télécharger PDF"
+                          onClick={() => downloadPDF(invoice.id)}
+                          disabled={isDownloading}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        {invoice.client_email && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Envoyer par email"
+                            onClick={() => {
+                              setSendEmailId(invoice.id)
+                              setEmailRecipient(invoice.client_email)
+                            }}
+                          >
+                            <Send className="h-4 w-4" />
+                          </Button>
+                        )}
                         {invoice.status !== "paid" && invoice.client_email && (
                           <Button variant="ghost" size="sm" title="Envoyer relance">
                             <Mail className="h-4 w-4" />
@@ -248,6 +275,7 @@ export default function InvoicesPage() {
       </Card>
 
       {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
@@ -266,6 +294,53 @@ export default function InvoicesPage() {
               disabled={isDeleting}
             >
               {isDeleting ? "Suppression..." : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Email Dialog */}
+      <Dialog open={!!sendEmailId} onOpenChange={() => setSendEmailId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Envoyer la facture par email</DialogTitle>
+            <DialogDescription>
+              La facture sera envoyée en pièce jointe au format PDF
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-sm font-medium">Email du destinataire</label>
+              <Input
+                type="email"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                placeholder="client@exemple.com"
+                className="mt-2"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendEmailId(null)}>
+              Annuler
+            </Button>
+            <Button
+              onClick={() => {
+                if (sendEmailId && emailRecipient) {
+                  sendEmail(
+                    { invoiceId: sendEmailId, email: emailRecipient },
+                    {
+                      onSuccess: () => {
+                        setSendEmailId(null)
+                        setEmailRecipient("")
+                      },
+                    }
+                  )
+                }
+              }}
+              disabled={isSending || !emailRecipient}
+            >
+              {isSending ? "Envoi..." : "Envoyer"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -2,6 +2,7 @@
 from typing import List, Dict, Optional
 import httpx
 import logging
+import base64
 
 from app.config import settings
 
@@ -216,5 +217,82 @@ class SendGridClient:
                 message_ids.append(None)
         
         return message_ids
+    
+    async def send_email_with_attachment(
+        self,
+        to_email: str,
+        subject: str,
+        content: str,
+        attachment_content: bytes,
+        attachment_filename: str,
+        attachment_type: str = "application/pdf",
+        from_email: str = "noreply@flowto.fr",
+        from_name: str = "Flowto"
+    ) -> str:
+        """
+        Send an email with file attachment.
+        
+        Args:
+            to_email: Recipient email
+            subject: Email subject
+            content: Email body (plain text)
+            attachment_content: File content as bytes
+            attachment_filename: Filename for attachment
+            attachment_type: MIME type of attachment
+            from_email: Sender email
+            from_name: Sender name
+            
+        Returns:
+            SendGrid message ID
+        """
+        # Encode attachment to base64
+        encoded_attachment = base64.b64encode(attachment_content).decode()
+        
+        payload = {
+            "personalizations": [
+                {
+                    "to": [{"email": to_email}],
+                    "subject": subject,
+                }
+            ],
+            "from": {"email": from_email, "name": from_name},
+            "content": [
+                {
+                    "type": "text/plain",
+                    "value": content
+                }
+            ],
+            "attachments": [
+                {
+                    "content": encoded_attachment,
+                    "filename": attachment_filename,
+                    "type": attachment_type,
+                    "disposition": "attachment"
+                }
+            ]
+        }
+        
+        try:
+            response = await self.client.post(
+                f"{self.BASE_URL}/mail/send",
+                json=payload
+            )
+            response.raise_for_status()
+            
+            message_id = response.headers.get("X-Message-Id", "unknown")
+            
+            logger.info(
+                f"Email with attachment sent to {to_email}: '{subject}' "
+                f"(message_id: {message_id}, attachment: {attachment_filename})"
+            )
+            
+            return message_id
+            
+        except httpx.HTTPStatusError as e:
+            logger.error(f"SendGrid send email with attachment failed: {e.response.text}")
+            raise SendGridError(f"Failed to send email with attachment: {e}")
+        except httpx.RequestError as e:
+            logger.error(f"SendGrid request error: {e}")
+            raise SendGridError(f"SendGrid request error: {e}")
 
 

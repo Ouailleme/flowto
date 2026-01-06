@@ -1,8 +1,10 @@
 """Invoice API endpoints"""
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import date
+from pydantic import BaseModel, EmailStr
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
@@ -16,8 +18,17 @@ from app.schemas.invoice import (
     InvoiceList
 )
 from app.services.invoice_service import InvoiceService
+from app.services.pdf_service import PDFService
+from app.integrations.sendgrid_client import SendGridClient
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
+
+
+class SendInvoiceRequest(BaseModel):
+    """Request to send invoice by email"""
+    recipient_email: EmailStr
+    subject: str | None = None
+    message: str | None = None
 
 
 @router.post(
@@ -221,5 +232,149 @@ async def delete_invoice(
         )
     
     await InvoiceService.delete_invoice(db, invoice)
+
+
+@router.get(
+    "/{invoice_id}/pdf",
+    summary="Download invoice PDF"
+)
+async def download_invoice_pdf(
+    invoice_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+) -> Response:
+    """
+    Download invoice as PDF.
+    
+    Returns PDF file for download.
+    """
+    from uuid import UUID
+    
+    try:
+        invoice_uuid = UUID(invoice_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid invoice ID format"
+        )
+    
+    # Get invoice
+    invoice = await InvoiceService.get_invoice(
+        db,
+        invoice_uuid,
+        current_user.id
+    )
+    
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+    
+    # Generate PDF
+    try:
+        pdf_bytes = PDFService.generate_invoice_pdf(invoice, current_user)
+        filename = PDFService.get_invoice_filename(invoice)
+        
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.post(
+    "/{invoice_id}/send",
+    summary="Send invoice by email"
+)
+async def send_invoice_email(
+    invoice_id: str,
+    send_request: SendInvoiceRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Send invoice by email with PDF attachment.
+    
+    - **recipient_email**: Email address to send to
+    - **subject**: Email subject (optional, default generated)
+    - **message**: Email message (optional, default generated)
+    """
+    from uuid import UUID
+    
+    try:
+        invoice_uuid = UUID(invoice_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid invoice ID format"
+        )
+    
+    # Get invoice
+    invoice = await InvoiceService.get_invoice(
+        db,
+        invoice_uuid,
+        current_user.id
+    )
+    
+    if not invoice:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+    
+    # Generate PDF
+    try:
+        pdf_bytes = PDFService.generate_invoice_pdf(invoice, current_user)
+        filename = PDFService.get_invoice_filename(invoice)
+        
+        # Prepare email
+        subject = send_request.subject or f"Facture {invoice.invoice_number} - {current_user.company_name}"
+        
+        message = send_request.message or f"""
+Bonjour,
+
+Veuillez trouver ci-joint la facture {invoice.invoice_number} d'un montant de {invoice.total_amount:.2f} {invoice.currency}.
+
+Date d'échéance : {invoice.due_date.strftime('%d/%m/%Y')}
+
+Cordialement,
+{current_user.company_name}
+        """.strip()
+        
+        # Send email
+        email_client = SendGridClient()
+        await email_client.send_email_with_attachment(
+            to_email=send_request.recipient_email,
+            subject=subject,
+            content=message,
+            attachment_content=pdf_bytes,
+            attachment_filename=filename,
+            attachment_type="application/pdf"
+        )
+        
+        return {
+            "message": "Invoice sent successfully",
+            "recipient": send_request.recipient_email,
+            "invoice_number": invoice.invoice_number
+        }
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate PDF: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send email: {str(e)}"
+        )
 
 
