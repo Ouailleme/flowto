@@ -13,6 +13,7 @@ import {
   LogOut,
   Sparkles,
   Menu,
+  Building2,
 } from "lucide-react"
 
 export default function DashboardLayout({
@@ -55,13 +56,16 @@ export default function DashboardLayout({
           {/* Logo */}
           <div className="flex items-center gap-2 p-6 border-b">
             <Sparkles className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">FinanceAI</span>
+            <span className="text-xl font-bold">Flowto</span>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2">
             <NavLink href="/dashboard" icon={LayoutDashboard}>
               Tableau de bord
+            </NavLink>
+            <NavLink href="/dashboard/banks" icon={Building2}>
+              Banques
             </NavLink>
             <NavLink href="/dashboard/transactions" icon={CreditCard}>
               Transactions

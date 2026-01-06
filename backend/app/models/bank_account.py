@@ -1,5 +1,5 @@
 """Bank Account model for storing connected bank accounts"""
-from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, String, DateTime, Boolean, ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -13,12 +13,14 @@ class BankAccount(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    bridge_account_id = Column(String(255), unique=True, nullable=False, index=True)
-    bridge_item_id = Column(String(255), nullable=False, index=True)
+    bridge_account_id = Column(String(255), unique=True, nullable=True, index=True)  # Nullable pour comptes manuels
+    bridge_user_uuid = Column(String(255), nullable=True, index=True)
+    bridge_item_id = Column(String(255), nullable=True, index=True)
     bank_name = Column(String(255), nullable=False)
     account_name = Column(String(255), nullable=True)
     account_type = Column(String(50), nullable=True)
     iban = Column(String(100), nullable=True)
+    balance = Column(Numeric(15, 2), nullable=False, default=0)
     currency = Column(String(3), nullable=False, default="EUR")
     is_active = Column(Boolean, default=True)
     last_sync_at = Column(DateTime(timezone=True), nullable=True)
